@@ -2,7 +2,7 @@ package onj
 
 import kotlin.math.pow
 
-class OnjTokenizer {
+internal class OnjTokenizer {
 
     private var next: Int = 0
     private var start: Int = 0
@@ -233,7 +233,7 @@ class OnjTokenizer {
 
 }
 
-data class OnjToken(val type: OnjTokenType, val literal: Any?, val char: Int) {
+internal data class OnjToken(val type: OnjTokenType, val literal: Any?, val char: Int) {
 
     fun isType(type: OnjTokenType): Boolean = this.type == type
 

@@ -1,2 +1,7 @@
+{
 
-test: float
+    a: int
+    b: string
+    c: float
+
+}

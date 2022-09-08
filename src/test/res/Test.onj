@@ -1,2 +1,4 @@
 
-test: NEG_INFINITY
+a: 123
+b: true
+c: 24234.34

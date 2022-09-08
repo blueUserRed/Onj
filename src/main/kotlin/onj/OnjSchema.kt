@@ -9,11 +9,11 @@ abstract class OnjSchema(_nullable: Boolean) {
 
     fun assertMatches(onjValue: OnjValue) = match(onjValue, "root")
 
-    fun check(onjValue: OnjValue) = try {
+    fun check(onjValue: OnjValue): String? = try {
         match(onjValue, "root")
-        true
+        null
     } catch (e: OnjSchemaException) {
-        false
+        e.message
     }
 
     internal abstract fun match(onjValue: OnjValue, parentName: String)
@@ -197,7 +197,7 @@ private fun getActualType(value: OnjValue): String {
 
 class OnjSchemaException(message: String) : RuntimeException(message) {
 
-    companion object {
+    internal companion object {
 
         fun fromTypeError(key: String, expected: String, actual: String): OnjSchemaException {
             return OnjSchemaException("\u001B[37m\n\n'$key' expected to have type '$expected', but is '$actual'.\u001B[0m\n")

@@ -221,6 +221,7 @@ class OnjParser {
     private fun parseFactor(): OnjValue {
         var left = parseLiteral()
         while (true) {
+            //TODO: this can probably be done better
             if (tryConsume(OnjTokenType.STAR)) {
                 val right = parseLiteral()
                 if (left.isInt() && right.isInt()) left = OnjInt((left as OnjInt).value * (right as OnjInt).value)
@@ -589,9 +590,9 @@ class OnjSchemaParser {
 
 class OnjParserException(message: String, cause: Exception?) : RuntimeException(message, cause) {
 
-    constructor(message: String) : this(message, null)
+    internal constructor(message: String) : this(message, null)
 
-    companion object {
+    internal companion object {
 
         fun fromErrorToken(
             errorToken: OnjToken,
@@ -601,7 +602,7 @@ class OnjParserException(message: String, cause: Exception?) : RuntimeException(
         ): OnjParserException {
             return fromErrorMessage(
                 errorToken.char, code,
-                "Unexpected Token '${errorToken.type}', expected '${expectedTokenType}'.\u001B[0m\n", filename
+                "Unexpected Token '${errorToken.type}', expected '${expectedTokenType}'\u001B[0m\n", filename
             )
         }
 
