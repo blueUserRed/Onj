@@ -19,12 +19,6 @@ abstract class OnjValue {
 
     abstract fun toJsonString(): String
     abstract fun toJsonString(indentationLevel: Int): String
-
-//    abstract fun write(writer: BufferedWriter)
-//    internal abstract fun write(writer: BufferedWriter, indentationLevel: Int)
-//
-//    internal abstract fun writeJson(writer: BufferedWriter, indentationLevel: Int = 1)
-//    abstract fun writeJson(writer: BufferedWriter)
 }
 
 class OnjInt(override val value: Long) : OnjValue() {
@@ -229,6 +223,7 @@ class OnjArray(override val value: List<OnjValue>) : OnjValue() {
     inline fun <reified T> get(index: Int): T = if (value[index].value is T) value[index].value as T else value[index] as T
 
     private fun shouldInline(): Boolean {
+        //TODO: this is stupid
         if (value.isEmpty()) return true
         var cost = 0
         for (part in value) {

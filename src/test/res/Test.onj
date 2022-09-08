@@ -1,18 +1,2 @@
-someInt: 23
-someFloat: 23.2
-someBool: true
-someNullable: null
-myObjects:
-[
 
-    {
-        key1: "skjfl"
-    }
-    {
-        key1: null
-    }
-    {
-        key1: "jkls"
-    }
-
-]
+test: NEG_INFINITY

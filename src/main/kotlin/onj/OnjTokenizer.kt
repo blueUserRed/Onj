@@ -18,6 +18,7 @@ class OnjTokenizer {
         while (next != code.length) {
             tokens.add(getCurrentToken() ?: continue)
         }
+
         tokens.add(OnjToken(OnjTokenType.EOF, null, code.length))
         return tokens
     }
@@ -30,12 +31,16 @@ class OnjTokenizer {
             ']' -> OnjToken(OnjTokenType.R_BRACKET, null, next - 1)
             '(' -> OnjToken(OnjTokenType.L_PAREN, null, next - 1)
             ')' -> OnjToken(OnjTokenType.R_PAREN, null, next - 1)
+            '<' -> OnjToken(OnjTokenType.L_SHARP, null, next - 1)
+            '>' -> OnjToken(OnjTokenType.R_SHARP, null, next - 1)
             ':' -> OnjToken(OnjTokenType.COLON, null, next - 1)
             ',' -> OnjToken(OnjTokenType.COMMA, null, next - 1)
             '!' -> OnjToken(OnjTokenType.EXCLAMATION, null, next - 1)
             '=' -> OnjToken(OnjTokenType.EQUALS, null, next - 1)
             '?' -> OnjToken(OnjTokenType.QUESTION, null, next - 1)
             '*' -> OnjToken(OnjTokenType.STAR, null, next - 1)
+            '+' -> OnjToken(OnjTokenType.PLUS, null, next - 1)
+            '-' -> OnjToken(OnjTokenType.MINUS, null, next - 1)
             '.' -> OnjToken(OnjTokenType.DOT, null, next - 1)
             '"' -> getString('"')
             '\'' -> getString('\'')
@@ -44,7 +49,15 @@ class OnjTokenizer {
             else -> {
                 if (last().isLetter()) getIdentifier()
                 else if (last().isDigit() || code[next] == '-') getNumber()
-                else if (last() == '/') { comment() ; null }
+                else if (last() == '/' && tryConsume('/')) {
+                    comment()
+                    null
+                } else if (last() == '/' && tryConsume('*')) {
+                    blockComment()
+                    null
+                } else if (last() == '/') {
+                    OnjToken(OnjTokenType.DIV, null, next - 1)
+                }
                 else throw OnjParserException.fromErrorMessage(next - 1, code, "Illegal Character '${code[next]}'.", filename)
             }
         }
@@ -74,11 +87,7 @@ class OnjTokenizer {
     private fun comment() {
         if (end()) throw OnjParserException.fromErrorMessage(next - 1, code,
             "Illegal Character '${code[next - 1]}!'", filename)
-
-        if (tryConsume('/')) while (!end() && code[next++] !in arrayOf('\n', '\r'));
-        else if (tryConsume('*')) blockComment()
-        else throw OnjParserException.fromErrorMessage(next - 1, code,
-            "Illegal Character '${code[next - 1]}!'", filename)
+        while (!end() && code[next++] !in arrayOf('\n', '\r'));
     }
 
     private fun blockComment() {
@@ -100,9 +109,9 @@ class OnjTokenizer {
             "TRUE" -> OnjToken(OnjTokenType.BOOLEAN, true, start)
             "FALSE" -> OnjToken(OnjTokenType.BOOLEAN, false, start)
             "NULL" -> OnjToken(OnjTokenType.NULL, null, start)
-            "POS_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Float.POSITIVE_INFINITY, start)
-            "NEG_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Float.NEGATIVE_INFINITY, start)
-            "NAN" -> OnjToken(OnjTokenType.FLOAT, Float.NaN, start)
+            "POS_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.POSITIVE_INFINITY, start)
+            "NEG_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.NEGATIVE_INFINITY, start)
+            "NAN" -> OnjToken(OnjTokenType.FLOAT, Double.NaN, start)
             else -> OnjToken(OnjTokenType.IDENTIFIER, identifier, start)
         }
     }
@@ -237,8 +246,8 @@ data class OnjToken(val type: OnjTokenType, val literal: Any?, val char: Int) {
 }
 
 enum class OnjTokenType {
-    L_BRACE, R_BRACE, L_PAREN, R_PAREN, L_BRACKET, R_BRACKET,
-    COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT,
+    L_BRACE, R_BRACE, L_PAREN, R_PAREN, L_BRACKET, R_BRACKET, L_SHARP, R_SHARP,
+    COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV,
     IDENTIFIER, STRING, INT, FLOAT, BOOLEAN, NULL,
     EOF
 }

@@ -1,14 +1,16 @@
 package onj
 
-import onj.*
 import java.lang.RuntimeException
 
-abstract class OnjSchema(val nullable: Boolean) {
+abstract class OnjSchema(_nullable: Boolean) {
 
-    fun assertMatches(onjValue: OnjValue) = match(onjValue, "")
+    var nullable: Boolean = _nullable
+        internal set
+
+    fun assertMatches(onjValue: OnjValue) = match(onjValue, "root")
 
     fun check(onjValue: OnjValue) = try {
-        match(onjValue, "")
+        match(onjValue, "root")
         true
     } catch (e: OnjSchemaException) {
         false
@@ -79,7 +81,12 @@ class OnjSchemaString(nullable: Boolean) : OnjSchema(nullable) {
     }
 }
 
-class OnjSchemaObject(nullable: Boolean, val schema: Map<String, OnjSchema>) : OnjSchema(nullable) {
+class OnjSchemaObject(
+    nullable: Boolean,
+    val keys: Map<String, OnjSchema>,
+    val optionalKeys: Map<String, OnjSchema>,
+    val allowsAdditional: Boolean
+) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
 
@@ -88,27 +95,42 @@ class OnjSchemaObject(nullable: Boolean, val schema: Map<String, OnjSchema>) : O
             throw OnjSchemaException.fromNonNullable(parentName, "object")
         }
 
-        if (onjValue !is OnjObject)  throw OnjSchemaException.fromTypeError(parentName, "object", getActualType(onjValue))
+        if (onjValue !is OnjObject) throw OnjSchemaException.fromTypeError(parentName, "object", getActualType(onjValue))
 
-        for (entry in schema.entries) {
-            val part = onjValue[entry.key] ?: throw OnjSchemaException.fromMissingKey("$parentName->${entry.key}")
-            entry.value.match(part, "$parentName->${entry.key}")
+        for ((key, value) in keys) {
+            val part = onjValue[key] ?: throw OnjSchemaException.fromMissingKey("$parentName->$key")
+            value.match(part, "$parentName->$key")
+        }
+        for ((key, value) in optionalKeys) {
+            val part = onjValue[key] ?: continue
+            value.match(part, "$parentName->$key")
+        }
+        if (!allowsAdditional) {
+            for (key in onjValue.value.keys) if (key !in keys.keys && key !in optionalKeys.keys) {
+                throw OnjSchemaException.fromUnknownKey("$parentName->$key")
+            }
         }
     }
 
     override fun getAsNullable(): OnjSchema {
-        return OnjSchemaObject(true, schema)
+        return OnjSchemaObject(true, keys, optionalKeys, allowsAdditional)
     }
 }
 
 class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable) {
 
-    private var schema: List<OnjSchema>? = null
+    private var _schemas: List<OnjSchema>? = null
     private var size: Int? = null
     private var type: OnjSchema? = null
 
+    val schemas: List<OnjSchema>
+        get() {
+            if (_schemas != null) return _schemas!!
+            return List(size!!) { type!! }
+        }
+
     constructor(nullable: Boolean, schema: List<OnjSchema>) : this(nullable) {
-        this.schema = schema
+        this._schemas = schema
     }
 
     constructor(nullable: Boolean, size: Int, type: OnjSchema) : this(nullable) {
@@ -126,11 +148,11 @@ class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable
         if (onjValue !is OnjArray)
             throw OnjSchemaException.fromTypeError(parentName, "array", getActualType(onjValue))
 
-        if (schema != null) {
-            if (schema!!.size != onjValue.value.size)
-                throw OnjSchemaException.fromWrongSize(parentName, schema!!.size, onjValue.value.size)
+        if (_schemas != null) {
+            if (_schemas!!.size != onjValue.value.size)
+                throw OnjSchemaException.fromWrongSize(parentName, _schemas!!.size, onjValue.value.size)
             for (i in onjValue.value.indices) {
-                schema!![i].match(onjValue.value[i], "$parentName[$i]")
+                _schemas!![i].match(onjValue.value[i], "$parentName[$i]")
             }
             return
         }
@@ -143,15 +165,25 @@ class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable
 
     override fun getAsNullable(): OnjSchema {
         val arr = OnjSchemaArray(true)
-        arr.schema = this.schema
+        arr._schemas = this._schemas
         arr.size = this.size
         arr.type = this.type
         return arr
     }
 }
 
+class OnjSchemaAny : OnjSchema(true) {
+
+    override fun match(onjValue: OnjValue, parentName: String) {
+    }
+
+    override fun getAsNullable(): OnjSchema {
+        return this
+    }
+}
+
 private fun getActualType(value: OnjValue): String {
-    return when(value) {
+    return when (value) {
         is OnjBoolean -> "boolean"
         is OnjInt -> "int"
         is OnjFloat -> "float"
@@ -182,6 +214,10 @@ class OnjSchemaException(message: String) : RuntimeException(message) {
         fun fromWrongSize(key: String, expected: Int, actual: Int): OnjSchemaException {
             return OnjSchemaException("\u001B[37m\n\n'$key' has length '$actual'," +
                     " but length '$expected' was expected.\u001B[0m\n")
+        }
+
+        fun fromUnknownKey(key: String): OnjSchemaException {
+            return OnjSchemaException("\u001B[37m\n\nUnknown key '$key'\u001B[0m\n")
         }
     }
 }
