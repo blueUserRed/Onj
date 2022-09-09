@@ -330,6 +330,7 @@ class OnjSchemaParser {
 
     private val variables: MutableMap<String, OnjSchema> = mutableMapOf()
     private var namedObjects: Map<String, List<OnjSchemaNamedObject>> = mutableMapOf()
+    private val namedObjectGroupsToCheck: MutableList<OnjToken> = mutableListOf()
 
     private fun parseSchema(tokens: List<OnjToken>, code: String, filename: String): OnjSchema {
         next = 0
@@ -341,10 +342,13 @@ class OnjSchemaParser {
         parseVariables()
         parseNamedObjects()
 
-        if (tryConsume(OnjTokenType.L_BRACE)) return parseObject(false, tokens[next], false)
-        if (tryConsume(OnjTokenType.L_BRACKET)) return parseArray(tokens[next], false)
+        val onjSchema = if (tryConsume(OnjTokenType.L_BRACE)) parseObject(false, tokens[next], false)
+        else if (tryConsume(OnjTokenType.L_BRACKET)) parseArray(tokens[next], false)
+        else parseObject(true, null, true)
 
-        return parseObject(true, null, true)
+        checkAllNamedObjectGroups()
+
+        return onjSchema
     }
 
 
@@ -402,6 +406,20 @@ class OnjSchemaParser {
             }
             tmpNamedObjects[groupName] = subObjects
             namedObjects = tmpNamedObjects.toMap()
+        }
+    }
+
+    private fun checkAllNamedObjectGroups() {
+        for (nameToken in namedObjectGroupsToCheck) {
+            val name = nameToken.literal as String
+            if (!namedObjects.any { it.key == name }) {
+                throw OnjParserException.fromErrorMessage(
+                    nameToken.char,
+                    code,
+                    "No named object group with name $name",
+                    filename
+                )
+            }
         }
     }
 
@@ -602,16 +620,8 @@ class OnjSchemaParser {
     private fun parseNamedObjectRef(): OnjSchemaNamedObjectGroup {
         consume(OnjTokenType.IDENTIFIER)
         val nameToken = last()
-        val name = nameToken.literal as String
-        if (!namedObjects.any { it.key == name }) {
-            throw OnjParserException.fromErrorMessage(
-                nameToken.char,
-                code,
-                "No named object group with name $name",
-                filename
-            )
-        }
-        return OnjSchemaNamedObjectGroup(name, tryConsume(OnjTokenType.QUESTION), namedObjects)
+        namedObjectGroupsToCheck.add(nameToken)
+        return OnjSchemaNamedObjectGroup(nameToken.literal as String, tryConsume(OnjTokenType.QUESTION), namedObjects)
     }
 
     private fun parseSchemaVariable(): OnjSchema {

@@ -4,6 +4,7 @@ $building [
         numWindows: int
         number: int
         house: string
+        neighbours: $building[*]
     }
 
     $skyscraper {
@@ -13,5 +14,15 @@ $building [
     }
 
 ]
+
+$A [
+    $A1 { b: $B }
+]
+
+$B [
+    $B1 { a: $A }
+]
+
+
 
 myBuilding: $building
