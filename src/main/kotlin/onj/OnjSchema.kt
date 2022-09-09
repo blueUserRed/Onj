@@ -2,13 +2,27 @@ package onj
 
 import java.lang.RuntimeException
 
-abstract class OnjSchema(_nullable: Boolean) {
+/**
+ * represents a parsed onjschema structure
+ */
+abstract class OnjSchema internal constructor(_nullable: Boolean) {
 
+    /**
+     * true if this part of the schema is nullable
+     */
     var nullable: Boolean = _nullable
         internal set
 
+    /**
+     * asserts that an onj-structure matches an onj-schema
+     * @throws [OnjSchemaException] when it doesn't match
+     */
     fun assertMatches(onjValue: OnjValue) = match(onjValue, "root")
 
+    /**
+     * checks if an onj-structure matches an onj-schema
+     * @return null if it matches, an error-message if it doesn't
+     */
     fun check(onjValue: OnjValue): String? = try {
         match(onjValue, "root")
         null
@@ -18,10 +32,16 @@ abstract class OnjSchema(_nullable: Boolean) {
 
     internal abstract fun match(onjValue: OnjValue, parentName: String)
 
+    /**
+     * returns a copy of this schema, but makes it nullable
+     */
     abstract fun getAsNullable(): OnjSchema
 }
 
-class OnjSchemaBoolean(nullable: Boolean) : OnjSchema(nullable) {
+/**
+ * the schema of a boolean
+ */
+class OnjSchemaBoolean internal constructor(nullable: Boolean) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
@@ -36,7 +56,10 @@ class OnjSchemaBoolean(nullable: Boolean) : OnjSchema(nullable) {
     }
 }
 
-class OnjSchemaInt(nullable: Boolean) : OnjSchema(nullable) {
+/**
+ * the schema of an Int
+ */
+class OnjSchemaInt internal constructor(nullable: Boolean) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
@@ -51,7 +74,10 @@ class OnjSchemaInt(nullable: Boolean) : OnjSchema(nullable) {
     }
 }
 
-class OnjSchemaFloat(nullable: Boolean) : OnjSchema(nullable) {
+/**
+ * the schema of a float
+ */
+class OnjSchemaFloat internal constructor(nullable: Boolean) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
@@ -66,7 +92,10 @@ class OnjSchemaFloat(nullable: Boolean) : OnjSchema(nullable) {
     }
 }
 
-class OnjSchemaString(nullable: Boolean) : OnjSchema(nullable) {
+/**
+ * the schema of a string
+ */
+class OnjSchemaString internal constructor(nullable: Boolean) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
@@ -81,7 +110,13 @@ class OnjSchemaString(nullable: Boolean) : OnjSchema(nullable) {
     }
 }
 
-class OnjSchemaObject(
+/**
+ * the schema of an object
+ * @param keys the (mandatory) keys of the object
+ * @param optionalKeys the optional keys of the object
+ * @param allowsAdditional true if keys that where not defined are allowed
+ */
+class OnjSchemaObject internal constructor(
     nullable: Boolean,
     val keys: Map<String, OnjSchema>,
     val optionalKeys: Map<String, OnjSchema>,
@@ -117,23 +152,29 @@ class OnjSchemaObject(
     }
 }
 
+/**
+ * the schema of an array
+ */
 class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable) {
 
     private var _schemas: List<OnjSchema>? = null
     private var size: Int? = null
     private var type: OnjSchema? = null
 
+    /**
+     * the list of schemas in the array
+     */
     val schemas: List<OnjSchema>
         get() {
             if (_schemas != null) return _schemas!!
             return List(size!!) { type!! }
         }
 
-    constructor(nullable: Boolean, schema: List<OnjSchema>) : this(nullable) {
+    internal constructor(nullable: Boolean, schema: List<OnjSchema>) : this(nullable) {
         this._schemas = schema
     }
 
-    constructor(nullable: Boolean, size: Int, type: OnjSchema) : this(nullable) {
+    internal constructor(nullable: Boolean, size: Int, type: OnjSchema) : this(nullable) {
         this.size = size
         this.type = type
     }
@@ -172,6 +213,9 @@ class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable
     }
 }
 
+/**
+ * the schema of an any-type
+ */
 class OnjSchemaAny : OnjSchema(true) {
 
     override fun match(onjValue: OnjValue, parentName: String) {

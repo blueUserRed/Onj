@@ -3,6 +3,9 @@ package onj
 import java.io.File
 import java.nio.file.Paths
 
+/**
+ * used for parsing a .onj file
+ */
 class OnjParser {
 
     private var next: Int = 0
@@ -272,11 +275,31 @@ class OnjParser {
 
     companion object {
 
+        /**
+         * reads a file and parses it
+         * @throws [java.io.IOException] [OnjParserException]
+         * @return the parsed onj-structure
+         */
         fun parseFile(path: String): OnjValue {
             val code = File(Paths.get(path).toUri()).bufferedReader().use { it.readText() }
             return OnjParser().parse(OnjTokenizer().tokenize(code, path), code, path)
         }
 
+        /**
+         * reads a file and parses it
+         * @throws [java.io.IOException] [OnjParserException]
+         * @return the parsed onj-structure
+         */
+        fun parseFile(file: File): OnjValue {
+            val code = file.bufferedReader().use { it.readText() }
+            return OnjParser().parse(OnjTokenizer().tokenize(code, file.canonicalPath), code, file.canonicalPath)
+        }
+
+        /**
+         * parses a string
+         * @throws [OnjParserException]
+         * @return the parsed onj-structure
+         */
         fun parse(code: String): OnjValue {
             return OnjParser().parse(OnjTokenizer().tokenize(code, "anonymous"), code, "anonymous")
         }
@@ -285,6 +308,9 @@ class OnjParser {
 
 }
 
+/**
+ * used for parsing a .onjschema file
+ */
 class OnjSchemaParser {
 
     private var next: Int = 0
@@ -575,11 +601,31 @@ class OnjSchemaParser {
 
     companion object {
 
+        /**
+         * reads a file and parses it
+         * @throws [java.io.IOException] [OnjParserException]
+         * @return the parsed onj-structure
+         */
         fun parseFile(path: String): OnjSchema {
             val code = File(Paths.get(path).toUri()).bufferedReader().use { it.readText() }
             return OnjSchemaParser().parseSchema(OnjTokenizer().tokenize(code, path), code, path)
         }
 
+        /**
+         * reads a file and parses it
+         * @throws [java.io.IOException] [OnjParserException]
+         * @return the parsed onj-structure
+         */
+        fun parseFile(file: File): OnjSchema {
+            val code = file.bufferedReader().use { it.readText() }
+            return OnjSchemaParser().parseSchema(OnjTokenizer().tokenize(code, file.canonicalPath), code, file.canonicalPath)
+        }
+
+        /**
+         * parses a string
+         * @throws [OnjParserException]
+         * @return the parsed onj-structure
+         */
         fun parse(code: String): OnjSchema {
             return OnjSchemaParser().parseSchema(OnjTokenizer().tokenize(code, "anonymous"), code, "anonymous")
         }
