@@ -117,8 +117,9 @@ open class OnjObject internal constructor(override val value: Map<String, OnjVal
     override fun toString(): String {
         val builder = StringBuilder()
         for (entry in value.entries) {
+            val key = if (isValidKey(entry.key)) entry.key else "'${entry.key}'"
             builder
-                .append("${entry.key}: ")
+                .append("$key: ")
                 .append(entry.value.toString(1))
                 .append("\n")
         }
@@ -131,8 +132,9 @@ open class OnjObject internal constructor(override val value: Map<String, OnjVal
         builder.append("\n")
         for (entry in value.entries) {
             for (i in 1..indentationLevel) builder.append("    ")
+            val key = if (isValidKey(entry.key)) entry.key else "'${entry.key}'"
             builder
-                .append("${entry.key}: ")
+                .append("$key: ")
                 .append(entry.value.toString(indentationLevel + 1))
                 .append("\n")
         }
@@ -189,6 +191,10 @@ open class OnjObject internal constructor(override val value: Map<String, OnjVal
      */
     inline fun <reified T> get(key: String): T {
         return if (value[key]?.value is T) value[key]?.value as T else value[key] as T
+    }
+
+    private fun isValidKey(key: String): Boolean {
+        return Regex("[a-zA-z_][a-zA-z\\d_]*").matches(key)
     }
 }
 

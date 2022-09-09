@@ -14,12 +14,4 @@ $building [
 
 ]
 
-$building2 [
-
-    $house {}
-
-]
-
 myBuilding: $building
-myNullableBuilding: $building?
-neighbours: $building[*]

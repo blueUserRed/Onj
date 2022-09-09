@@ -84,7 +84,7 @@ class OnjParser {
                 continue
 
             } else {
-                throw OnjParserException.fromErrorToken(last(), "Identifier or String-Identifier.", code, filename)
+                throw OnjParserException.fromErrorToken(current(), "Identifier or String-Identifier", code, filename)
             }
 
             if (values.containsKey(key)) {
@@ -177,7 +177,17 @@ class OnjParser {
         else if (tryConsume(OnjTokenType.L_BRACKET)) parseArray(last())
         else if (tryConsume(OnjTokenType.EXCLAMATION)) parseVariable()
         else if (tryConsume(OnjTokenType.L_SHARP)) parseCalculation()
+        else if (tryConsume(OnjTokenType.DOLLAR)) parseNamedObject()
         else throw OnjParserException.fromErrorToken(current(), "Value", code, filename)
+    }
+
+    private fun parseNamedObject(): OnjValue {
+        consume(OnjTokenType.IDENTIFIER)
+        val nameToken = last()
+        val name = nameToken.literal as String
+        consume(OnjTokenType.L_BRACE)
+        val body = parseObject(false, last())
+        return OnjNamedObject(name, body.value)
     }
 
     private fun parseVariable(): OnjValue {
@@ -589,7 +599,7 @@ class OnjSchemaParser {
         return s
     }
 
-    private fun parseNamedObjectRef(): OnjSchemaNamedObjectReference {
+    private fun parseNamedObjectRef(): OnjSchemaNamedObjectGroup {
         consume(OnjTokenType.IDENTIFIER)
         val nameToken = last()
         val name = nameToken.literal as String
@@ -601,7 +611,7 @@ class OnjSchemaParser {
                 filename
             )
         }
-        return OnjSchemaNamedObjectReference(name, tryConsume(OnjTokenType.QUESTION), namedObjects)
+        return OnjSchemaNamedObjectGroup(name, tryConsume(OnjTokenType.QUESTION), namedObjects)
     }
 
     private fun parseSchemaVariable(): OnjSchema {
@@ -725,13 +735,14 @@ class OnjParserException(message: String, cause: Exception?) : RuntimeException(
                 .append("\u001B[37m\n\nError in file $filename on line ${result.second}, on position: ${result.third}\n")
                 .append(result.first)
                 .append("\n")
-            for (i in 1 until result.third) messageBuilder.append(" ")
-            messageBuilder.append(" ^------ $message\u001B[0m\n")
+            for (i in 1..result.third) messageBuilder.append(" ")
+            messageBuilder.append("^------ $message\u001B[0m\n")
             return OnjParserException(messageBuilder.toString())
         }
 
 
         private fun getLine(charPos: Int, code: String): Triple<String, Int, Int> {
+            //TODO: judging by the code is was probably 3am when i wrote this
             val c = code + "\n" //lol
             var lineCount = 0
             var cur = 0

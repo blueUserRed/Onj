@@ -226,7 +226,7 @@ class OnjSchemaAny internal constructor() : OnjSchema(true) {
     }
 }
 
-class OnjSchemaNamedObjectReference internal constructor(
+class OnjSchemaNamedObjectGroup internal constructor(
     val name: String,
     nullable: Boolean,
     private val namedObjects: Map<String, List<OnjSchemaNamedObject>>
@@ -243,14 +243,14 @@ class OnjSchemaNamedObjectReference internal constructor(
         }
 
         val obj = namedObjects[name]!!.filter { it.name == onjValue.name }.getOrNull(0)?.obj ?: run {
-            throw OnjSchemaException.fromUnknownObjectName(parentName, onjValue.name)
+            throw OnjSchemaException.fromUnknownObjectName(parentName, onjValue.name, name)
         }
 
         obj.match(onjValue, parentName)
     }
 
     override fun getAsNullable(): OnjSchema {
-        return OnjSchemaNamedObjectReference(name, true, namedObjects)
+        return OnjSchemaNamedObjectGroup(name, true, namedObjects)
     }
 }
 
@@ -294,8 +294,8 @@ class OnjSchemaException(message: String) : RuntimeException(message) {
             return OnjSchemaException("\u001B[37m\n\nUnknown key '$key'\u001B[0m\n")
         }
 
-        fun fromUnknownObjectName(key: String, name: String): OnjSchemaException {
-            return OnjSchemaException("\u001B[37m\n\n'$key': Unknown object name '$name'\u001B[0m\n")
+        fun fromUnknownObjectName(key: String, name: String, group: String): OnjSchemaException {
+            return OnjSchemaException("\u001B[37m\n\n'$key': Unknown object name '$name' in group '$group'\u001B[0m\n")
         }
     }
 }

@@ -1,31 +1,38 @@
 
-!buildingVar = $house {
+myBuilding: $haha {
     numWindows: 2
     number: 3
-    house: "house"
+    house: "dsf"
 }
 
-myBuilding: $house {
-    numWindows: 2
-    number: 3
-    house: "house"
-}
-
-myNullableBuilding: null
-neighbours: [
-
-    $skyscraper {
-        floors: 20
-        elevators: 2
-        skyscraper: "sfsdfs"
-    }
-
-     $house {
-        numWindows: 2
-        number: 3
-        house: "house"
-    }
-
-    !buildingVar
-
-]
+//
+//!buildingVar = $house {
+//    numWindows: 2
+//    number: 3
+//    house: "house"
+//}
+//
+//myBuilding: $house {
+//    numWindows: 2
+//    number: 3
+//    house: "house"
+//}
+//
+//myNullableBuilding: null
+//neighbours: [
+//
+//    $skyscraper {
+//        floors: 20
+//        elevators: 2
+//        skyscraper: "sfsdfs"
+//    }
+//
+//     $house {
+//        numWindows: 2
+//        number: 3
+//        house: "house"
+//    }
+//
+//    !buildingVar
+//
+//]

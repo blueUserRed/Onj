@@ -48,7 +48,7 @@ internal class OnjTokenizer {
             ' ', '\t', '\r', '\n' -> null
 
             else -> {
-                if (last().isLetter()) getIdentifier()
+                if (last().isLetter() || last() == '_') getIdentifier()
                 else if (last().isDigit() || code[next] == '-') getNumber()
                 else if (last() == '/' && tryConsume('/')) {
                     comment()
@@ -59,7 +59,12 @@ internal class OnjTokenizer {
                 } else if (last() == '/') {
                     OnjToken(OnjTokenType.DIV, null, next - 1)
                 }
-                else throw OnjParserException.fromErrorMessage(next - 1, code, "Illegal Character '${code[next]}'.", filename)
+                else throw OnjParserException.fromErrorMessage(
+                    next - 1,
+                    code,
+                    "Illegal Character '${code[next - 1]}'.",
+                    filename
+                )
             }
         }
     }
