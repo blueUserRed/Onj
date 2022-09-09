@@ -1,7 +1,25 @@
-{
+$building [
 
-    a: int
-    b: string
-    c: float
+    $house {
+        numWindows: int
+        number: int
+        house: string
+    }
 
-}
+    $skyscraper {
+        floors: int
+        elevators: int
+        skyscraper: string
+    }
+
+]
+
+$building2 [
+
+    $house {}
+
+]
+
+myBuilding: $building
+myNullableBuilding: $building?
+neighbours: $building[*]

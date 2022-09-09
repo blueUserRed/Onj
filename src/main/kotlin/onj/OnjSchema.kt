@@ -216,13 +216,41 @@ class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable
 /**
  * the schema of an any-type
  */
-class OnjSchemaAny : OnjSchema(true) {
+class OnjSchemaAny internal constructor() : OnjSchema(true) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
     }
 
     override fun getAsNullable(): OnjSchema {
-        return this
+        return OnjSchemaAny()
+    }
+}
+
+class OnjSchemaNamedObjectReference internal constructor(
+    val name: String,
+    nullable: Boolean,
+    private val namedObjects: Map<String, List<OnjSchemaNamedObject>>
+) : OnjSchema(nullable) {
+
+    override fun match(onjValue: OnjValue, parentName: String) {
+        if (onjValue.isNull()) {
+            if (nullable) return
+            throw OnjSchemaException.fromNonNullable(parentName, "named object")
+        }
+
+        if (onjValue !is OnjNamedObject) {
+            throw OnjSchemaException.fromTypeError(parentName, "named object", getActualType(onjValue))
+        }
+
+        val obj = namedObjects[name]!!.filter { it.name == onjValue.name }.getOrNull(0)?.obj ?: run {
+            throw OnjSchemaException.fromUnknownObjectName(parentName, onjValue.name)
+        }
+
+        obj.match(onjValue, parentName)
+    }
+
+    override fun getAsNullable(): OnjSchema {
+        return OnjSchemaNamedObjectReference(name, true, namedObjects)
     }
 }
 
@@ -232,12 +260,14 @@ private fun getActualType(value: OnjValue): String {
         is OnjInt -> "int"
         is OnjFloat -> "float"
         is OnjString -> "string"
+        is OnjNamedObject -> "named object"
         is OnjObject -> "object"
         is OnjArray -> "array"
         else -> ""
     }
 }
 
+internal class OnjSchemaNamedObject(val name: String, val obj: OnjSchemaObject)
 
 class OnjSchemaException(message: String) : RuntimeException(message) {
 
@@ -262,6 +292,10 @@ class OnjSchemaException(message: String) : RuntimeException(message) {
 
         fun fromUnknownKey(key: String): OnjSchemaException {
             return OnjSchemaException("\u001B[37m\n\nUnknown key '$key'\u001B[0m\n")
+        }
+
+        fun fromUnknownObjectName(key: String, name: String): OnjSchemaException {
+            return OnjSchemaException("\u001B[37m\n\n'$key': Unknown object name '$name'\u001B[0m\n")
         }
     }
 }

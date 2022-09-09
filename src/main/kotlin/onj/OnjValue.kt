@@ -112,7 +112,7 @@ class OnjNull : OnjValue() {
 /**
  * represents an object (kotlin type is [Map])
  */
-class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
+open class OnjObject internal constructor(override val value: Map<String, OnjValue>) : OnjValue() {
 
     override fun toString(): String {
         val builder = StringBuilder()
@@ -190,7 +190,6 @@ class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
     inline fun <reified T> get(key: String): T {
         return if (value[key]?.value is T) value[key]?.value as T else value[key] as T
     }
-
 }
 
 /**
@@ -293,5 +292,14 @@ class OnjArray(override val value: List<OnjValue>) : OnjValue() {
             else if (part.isNull()) cost += 4
         }
         return cost < 60
+    }
+}
+
+class OnjNamedObject internal constructor(val name: String, value: Map<String, OnjValue>) : OnjObject(value) {
+
+    override fun toString(): String = toString(0)
+
+    override fun toString(indentationLevel: Int): String {
+        return "\$$name ${super.toString(indentationLevel)}"
     }
 }

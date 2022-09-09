@@ -319,6 +319,7 @@ class OnjSchemaParser {
     private var filename: String = ""
 
     private val variables: MutableMap<String, OnjSchema> = mutableMapOf()
+    private var namedObjects: Map<String, List<OnjSchemaNamedObject>> = mutableMapOf()
 
     private fun parseSchema(tokens: List<OnjToken>, code: String, filename: String): OnjSchema {
         next = 0
@@ -328,6 +329,7 @@ class OnjSchemaParser {
         this.variables.clear()
 
         parseVariables()
+        parseNamedObjects()
 
         if (tryConsume(OnjTokenType.L_BRACE)) return parseObject(false, tokens[next], false)
         if (tryConsume(OnjTokenType.L_BRACKET)) return parseArray(tokens[next], false)
@@ -352,7 +354,48 @@ class OnjSchemaParser {
         }
     }
 
-    private fun parseObject(implicitEnd: Boolean, startToken: OnjToken?, nullable: Boolean): OnjSchema {
+    private fun parseNamedObjects() {
+        val tmpNamedObjects = mutableMapOf<String, List<OnjSchemaNamedObject>>()
+        val allNames = mutableListOf<String>() // keep track of all names to detect duplicates
+        while (tryConsume(OnjTokenType.DOLLAR)) {
+            consume(OnjTokenType.IDENTIFIER)
+            val goupNameToken = last()
+            val groupName = goupNameToken.literal as String
+            if (namedObjects.containsKey(groupName)) {
+                throw OnjParserException.fromErrorMessage(
+                    goupNameToken.char,
+                    code,
+                    "Group with name $groupName is already defined",
+                    filename
+                )
+            }
+            val subObjects = mutableListOf<OnjSchemaNamedObject>()
+            consume(OnjTokenType.L_BRACKET)
+            while (!tryConsume(OnjTokenType.R_BRACKET)) {
+                consume(OnjTokenType.DOLLAR)
+                consume(OnjTokenType.IDENTIFIER)
+                val nameToken = last()
+                val name = nameToken.literal as String
+                if (name in allNames) {
+                    throw OnjParserException.fromErrorMessage(
+                        nameToken.char,
+                        code,
+                        "Named Object $name is already defined. (Note: names need to be unique even" +
+                                " across different groups)",
+                        filename
+                    )
+                }
+                allNames.add(name)
+                consume(OnjTokenType.L_BRACE)
+                val obj = parseObject(false, last(), false)
+                subObjects.add(OnjSchemaNamedObject(name, obj))
+            }
+            tmpNamedObjects[groupName] = subObjects
+            namedObjects = tmpNamedObjects.toMap()
+        }
+    }
+
+    private fun parseObject(implicitEnd: Boolean, startToken: OnjToken?, nullable: Boolean): OnjSchemaObject {
 
         val keys: MutableMap<String, OnjSchema> = mutableMapOf()
         val optionalKeys: MutableMap<String, OnjSchema> = mutableMapOf()
@@ -531,6 +574,7 @@ class OnjSchemaParser {
     private fun parseLiteral(): OnjSchema {
 
         if (tryConsume(OnjTokenType.EXCLAMATION)) return parseSchemaVariable()
+        if (tryConsume(OnjTokenType.DOLLAR)) return parseNamedObjectRef()
         else if (tryConsume(OnjTokenType.STAR)) return OnjSchemaAny()
 
         consume(OnjTokenType.IDENTIFIER)
@@ -543,6 +587,21 @@ class OnjSchemaParser {
         }
         if (tryConsume(OnjTokenType.QUESTION)) s.nullable = true
         return s
+    }
+
+    private fun parseNamedObjectRef(): OnjSchemaNamedObjectReference {
+        consume(OnjTokenType.IDENTIFIER)
+        val nameToken = last()
+        val name = nameToken.literal as String
+        if (!namedObjects.any { it.key == name }) {
+            throw OnjParserException.fromErrorMessage(
+                nameToken.char,
+                code,
+                "No named object group with name $name",
+                filename
+            )
+        }
+        return OnjSchemaNamedObjectReference(name, tryConsume(OnjTokenType.QUESTION), namedObjects)
     }
 
     private fun parseSchemaVariable(): OnjSchema {

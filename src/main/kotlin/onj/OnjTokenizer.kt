@@ -42,6 +42,7 @@ internal class OnjTokenizer {
             '+' -> OnjToken(OnjTokenType.PLUS, null, next - 1)
             '-' -> OnjToken(OnjTokenType.MINUS, null, next - 1)
             '.' -> OnjToken(OnjTokenType.DOT, null, next - 1)
+            '$' -> OnjToken(OnjTokenType.DOLLAR, null, next - 1)
             '"' -> getString('"')
             '\'' -> getString('\'')
             ' ', '\t', '\r', '\n' -> null
@@ -247,7 +248,7 @@ internal data class OnjToken(val type: OnjTokenType, val literal: Any?, val char
 
 enum class OnjTokenType {
     L_BRACE, R_BRACE, L_PAREN, R_PAREN, L_BRACKET, R_BRACKET, L_SHARP, R_SHARP,
-    COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV,
+    COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV, DOLLAR,
     IDENTIFIER, STRING, INT, FLOAT, BOOLEAN, NULL,
     EOF
 }
