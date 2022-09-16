@@ -25,8 +25,8 @@ class OnjParser {
         parseVariables()
 
         return  if (tryConsume(OnjTokenType.L_BRACE)) parseObject(false, tokens[next])
-                else if (tryConsume(OnjTokenType.L_BRACKET)) parseArray(tokens[next])
-                else parseObject(true, null)
+        else if (tryConsume(OnjTokenType.L_BRACKET)) parseArray(tokens[next])
+        else parseObject(true, null)
     }
 
     private fun parseVariables() {
@@ -329,7 +329,7 @@ class OnjSchemaParser {
     private var filename: String = ""
 
     private val variables: MutableMap<String, OnjSchema> = mutableMapOf()
-    private var namedObjects: Map<String, List<OnjSchemaNamedObject>> = mutableMapOf()
+    private var namedObjects: MutableMap<String, List<OnjSchemaNamedObject>> = mutableMapOf()
     private val namedObjectGroupsToCheck: MutableList<OnjToken> = mutableListOf()
 
     private fun parseSchema(tokens: List<OnjToken>, code: String, filename: String): OnjSchema {
@@ -369,15 +369,14 @@ class OnjSchemaParser {
     }
 
     private fun parseNamedObjects() {
-        val tmpNamedObjects = mutableMapOf<String, List<OnjSchemaNamedObject>>()
         val allNames = mutableListOf<String>() // keep track of all names to detect duplicates
         while (tryConsume(OnjTokenType.DOLLAR)) {
             consume(OnjTokenType.IDENTIFIER)
-            val goupNameToken = last()
-            val groupName = goupNameToken.literal as String
-            if (namedObjects.containsKey(groupName)) {
+            val groupNameToken = last()
+            val groupName = groupNameToken.literal as String
+            if (this.namedObjects.containsKey(groupName)) {
                 throw OnjParserException.fromErrorMessage(
-                    goupNameToken.char,
+                    groupNameToken.char,
                     code,
                     "Group with name $groupName is already defined",
                     filename
@@ -404,8 +403,7 @@ class OnjSchemaParser {
                 val obj = parseObject(false, last(), false)
                 subObjects.add(OnjSchemaNamedObject(name, obj))
             }
-            tmpNamedObjects[groupName] = subObjects
-            namedObjects = tmpNamedObjects.toMap()
+            namedObjects[groupName] = subObjects
         }
     }
 
@@ -462,12 +460,20 @@ class OnjSchemaParser {
                     "Variable included via triple dot is not of type 'Object'", filename
                 )
 
-                for (pair in result.keys.entries) {
-                    if (keys.containsKey(pair.key)) throw OnjParserException.fromErrorMessage(
+                for ((curKey, curValue) in result.keys.entries) {
+                    if (keys.containsKey(curKey)) throw OnjParserException.fromErrorMessage(
                         last().char, code,
-                        "Key '${pair.key}' included via Triple-Dot is already defined.", filename
+                        "Key '$curKey' included via Triple-Dot is already defined.", filename
                     )
-                    keys[pair.key] = pair.value
+                    keys[curKey] = curValue
+                }
+
+                for ((curKey, curValue) in result.optionalKeys.entries) {
+                    if (keys.containsKey(curKey)) throw OnjParserException.fromErrorMessage(
+                        last().char, code,
+                        "Key '$curKey' included via Triple-Dot is already defined.", filename
+                    )
+                    optionalKeys[curKey] = curValue
                 }
 
                 continue

@@ -81,7 +81,11 @@ class OnjString(override val value: String) : OnjValue() {
 
     override fun toString(indentationLevel: Int): String = "'$value'"
     override fun toString(): String = "'$value'"
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
     override fun toJsonString(): String = "\"$value\""
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
     override fun toJsonString(indentationLevel: Int): String = "\"$value\""
 }
 
@@ -166,11 +170,11 @@ open class OnjObject internal constructor(override val value: Map<String, OnjVal
     operator fun get(identifier: String): OnjValue? = value[identifier]
 
     /**
-     * checks if the object has a key named [key] that has the (kotlin!) type [T]
+     * checks if the object has a key named [key] that has the kotlin or onj type [T]
      */
     inline fun <reified T> hasKey(key: String): Boolean {
         if (!value.containsKey(key)) return false
-        return value[key]?.value is T
+        return value[key] is T || value[key]?.value is T
     }
 
     /**

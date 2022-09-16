@@ -73,9 +73,11 @@ internal class OnjTokenizer {
         start = next
         val result: StringBuilder = StringBuilder()
         while (consume() != endChar) {
-            if (end()) throw OnjParserException.fromErrorMessage(start, code, "String is opened but never closed!", filename)
+            if (end() || (endChar != '\'' && last() == '\n')) {
+                throw OnjParserException.fromErrorMessage(start, code, "String is opened but never closed!", filename)
+            }
             if (tryConsume('\\')) {
-                result.append(when(last()) {
+                result.append(when(consume()) {
                     'n' -> "\n"
                     'r' -> "\r"
                     't' -> "\t"

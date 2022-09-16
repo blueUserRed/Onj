@@ -1,28 +1,78 @@
-$building [
 
-    $house {
-        numWindows: int
-        number: int
-        house: string
-        neighbours: $building[*]
-    }
 
-    $skyscraper {
-        floors: int
-        elevators: int
-        skyscraper: string
+$Viewport [
+
+    $FitViewport {
+        worldWidth: float
+        worldHeight: float
     }
 
 ]
 
-$A [
-    $A1 { b: $B }
+$Font [
+
+    $BitmapFont {
+        name: string
+        file: string
+    }
+
+    $FreeTypeFont {
+        name: string
+        file: string
+        color: string
+        size: int
+    }
+
 ]
 
-$B [
-    $B1 { a: $A }
+$Widget [
+
+    $Label {
+        text: string
+        font: string
+    }
+
+    $Image {
+        textureName: string
+        xScale: float
+        yScale: float
+    }
+
 ]
 
+viewport: $Viewport
+assets: {
+    textures: string
+    fonts: $Font[*]
+}
+children: $Widget[*]
 
 
-myBuilding: $building
+//$building [
+//
+//    $house {
+//        numWindows: int
+//        number: int
+//        house: string
+//        neighbours: $building[*]
+//    }
+//
+//    $skyscraper {
+//        floors: int
+//        elevators: int
+//        skyscraper: string
+//    }
+//
+//]
+//
+//$A [
+//    $A1 { b: $B }
+//]
+//
+//$B [
+//    $B1 { a: $A }
+//]
+//
+//
+//
+//myBuilding: $building

@@ -2,7 +2,7 @@
 myBuilding: $haha {
     numWindows: 2
     number: 3
-    house: "dsf"
+    house: "ds\nf"
 }
 
 //

@@ -242,7 +242,7 @@ class OnjSchemaNamedObjectGroup internal constructor(
             throw OnjSchemaException.fromTypeError(parentName, "named object", getActualType(onjValue))
         }
 
-        val obj = namedObjects[name]!!.filter { it.name == onjValue.name }.getOrNull(0)?.obj ?: run {
+        val obj = namedObjects[name]?.filter { it.name == onjValue.name }?.getOrNull(0)?.obj ?: run {
             throw OnjSchemaException.fromUnknownObjectName(parentName, onjValue.name, name)
         }
 
