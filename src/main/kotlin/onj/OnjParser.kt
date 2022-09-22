@@ -1,12 +1,14 @@
 package onj
 
 import java.io.File
+import java.io.IOException
+import java.nio.file.Path
 import java.nio.file.Paths
 
 /**
  * used for parsing a .onj file
  */
-class OnjParser {
+class OnjParser private constructor(val previousFiles: List<Path> = listOf()) {
 
     private var next: Int = 0
     private var tokens: List<OnjToken> = listOf()
@@ -30,17 +32,105 @@ class OnjParser {
     }
 
     private fun parseVariables() {
-        while (tryConsume(OnjTokenType.EXCLAMATION)) {
+        while (true) {
 
-            val identifier = if (tryConsume(OnjTokenType.IDENTIFIER)) {
-                last().literal as String
-            } else throw OnjParserException.fromErrorToken(last(), OnjTokenType.IDENTIFIER, code, filename)
+            if (tryConsume(OnjTokenType.EOF)) {
+                next--
+                break
+            }
 
-            consume(OnjTokenType.EQUALS)
+            if (tryConsume(OnjTokenType.EXCLAMATION)) {
 
-            val value = parseValue()
+                val identifier = if (tryConsume(OnjTokenType.IDENTIFIER)) {
+                    last().literal as String
+                } else {
+                    throw OnjParserException.fromErrorToken(last(), OnjTokenType.IDENTIFIER, code, filename)
+                }
+                val identifierToken = last()
+                consume(OnjTokenType.EQUALS)
+                val value = parseValue()
+                if (variables.containsKey(identifier)) {
+                    throw OnjParserException.fromErrorMessage(
+                        identifierToken.char,
+                        code,
+                        "redefinition of variable '$identifier'",
+                        filename
+                    )
+                }
+                variables[identifier] = value
 
-            variables[identifier] = value
+            } else if (tryConsume(OnjTokenType.IDENTIFIER)) {
+
+                if (last().literal as String != "import") {
+                    next--
+                    break
+                }
+
+                consume(OnjTokenType.STRING)
+                val pathToken = last()
+                val path = pathToken.literal as String
+
+                val normalized = Paths.get(path).normalize()
+                if (normalized in previousFiles || normalized == Paths.get(filename).normalize()) {
+                    throw OnjParserException.fromErrorMessage(
+                        pathToken.char,
+                        code,
+                        "Import loop detect: file imports itself",
+                        filename
+                    )
+                }
+
+                consume(OnjTokenType.IDENTIFIER)
+                if (last().literal as String != "as") {
+                    throw OnjParserException.fromErrorToken(last(), "'as'", code, filename)
+                }
+                consume(OnjTokenType.IDENTIFIER)
+
+                val nameToken = last()
+                val name = nameToken.literal as String
+
+                val parser = OnjParser(previousFiles + Paths.get(filename).normalize())
+
+                val code = try {
+                    File(Paths.get(path).toUri()).bufferedReader().use { it.readText() }
+                } catch (e: IOException) {
+                    throw OnjParserException.fromErrorMessage(
+                        pathToken.char,
+                        code,
+                        "Couldn't open imported file '$path'",
+                        filename,
+                        e
+                    )
+                }
+
+                val result = parser.parse(OnjTokenizer().tokenize(code, path), code, path)
+
+                if (name != "_") {
+                    if (variables.containsKey(name)) {
+                        throw OnjParserException.fromErrorMessage(
+                            nameToken.char,
+                            code,
+                            "redefinition of variable '$name'",
+                            filename
+                        )
+                    }
+                    variables[name] = result
+                }
+
+                for ((varName, variable) in parser.variables) {
+                    if (variables.containsKey(varName)) {
+                        throw OnjParserException.fromErrorMessage(
+                            nameToken.char,
+                            code,
+                            "Variable '$varName' is imported here, but was already defined",
+                            filename
+                        )
+                    }
+                    variables[varName] = variable
+                }
+
+            }
+
         }
     }
 
@@ -321,7 +411,7 @@ class OnjParser {
 /**
  * used for parsing a .onjschema file
  */
-class OnjSchemaParser {
+class OnjSchemaParser private constructor(val previousFiles: List<Path> = listOf()) {
 
     private var next: Int = 0
     private var tokens: List<OnjToken> = listOf()
@@ -354,17 +444,134 @@ class OnjSchemaParser {
 
     private fun parseVariables() {
 
-        while (tryConsume(OnjTokenType.EXCLAMATION)) {
+        while (true) {
 
-            val identifier = if (tryConsume(OnjTokenType.IDENTIFIER)) {
-                last().literal as String
-            } else throw OnjParserException.fromErrorToken(last(), OnjTokenType.IDENTIFIER, code, filename)
+            if (tryConsume(OnjTokenType.EOF)) {
+                next--
+                break
+            }
 
-            consume(OnjTokenType.EQUALS)
+            if (tryConsume(OnjTokenType.EXCLAMATION)) {
 
-            val value = parseValue()
+                val identifier = if (tryConsume(OnjTokenType.IDENTIFIER)) {
+                    last().literal as String
+                } else {
+                    throw OnjParserException.fromErrorToken(last(), OnjTokenType.IDENTIFIER, code, filename)
+                }
+                val identifierToken = last()
 
-            variables[identifier] = value
+                consume(OnjTokenType.EQUALS)
+
+                val value = parseValue()
+
+                if (variables.containsKey(identifier)) {
+                    throw OnjParserException.fromErrorMessage(
+                        identifierToken.char,
+                        code,
+                        "redefinition of variable '$identifier'",
+                        filename
+                    )
+                }
+
+                variables[identifier] = value
+
+            } else if (tryConsume(OnjTokenType.IDENTIFIER)) {
+
+                if (last().literal as String != "import") {
+                    next--
+                    break
+                }
+
+                consume(OnjTokenType.STRING)
+                val pathToken = last()
+                val path = pathToken.literal as String
+
+                val normalized = Paths.get(path).normalize()
+                if (normalized in previousFiles || normalized == Paths.get(filename).normalize()) {
+                    throw OnjParserException.fromErrorMessage(
+                        pathToken.char,
+                        code,
+                        "Import loop detect: file imports itself",
+                        filename
+                    )
+                }
+
+                consume(OnjTokenType.IDENTIFIER)
+                if (last().literal as String != "as") {
+                    throw OnjParserException.fromErrorToken(last(), "'as'", code, filename)
+                }
+                consume(OnjTokenType.IDENTIFIER)
+
+                val nameToken = last()
+                val name = nameToken.literal as String
+
+                val parser = OnjSchemaParser(previousFiles + Paths.get(filename).normalize())
+
+                val code = try {
+                    File(Paths.get(path).toUri()).bufferedReader().use { it.readText() }
+                } catch (e: IOException) {
+                    throw OnjParserException.fromErrorMessage(
+                        pathToken.char,
+                        code,
+                        "Couldn't open imported file '$path'",
+                        filename,
+                        e
+                    )
+                }
+
+                val result = parser.parseSchema(OnjTokenizer().tokenize(code, path), code, path)
+
+                if (name != "_") {
+                    if (variables.containsKey(name)) {
+                        throw OnjParserException.fromErrorMessage(
+                            nameToken.char,
+                            code,
+                            "redefinition of variable '$name'",
+                            filename
+                        )
+                    }
+                    variables[name] = result
+                }
+
+                for ((varName, variable) in parser.variables) {
+                    if (variables.containsKey(varName)) {
+                        throw OnjParserException.fromErrorMessage(
+                            nameToken.char,
+                            code,
+                            "Variable '$varName' is imported here, but was already defined",
+                            filename
+                        )
+                    }
+                    variables[varName] = variable
+                }
+
+                val allNamedObjectNames = namedObjects.values.flatten().map { it.name }.toList()
+                val groupNames = namedObjects.keys.toList()
+                for ((group, objects) in parser.namedObjects) {
+                    objects.forEach {
+                        if (it.name in allNamedObjectNames) {
+                            throw OnjParserException.fromErrorMessage(
+                                pathToken.char,
+                                code,
+                                "Redefinition of named object ${it.name} in imported file. " +
+                                        "Note: Object names need to be distinct across groups.",
+                                filename
+                            )
+                        }
+                    }
+                    if (group in groupNames) {
+                        throw OnjParserException.fromErrorMessage(
+                            pathToken.char,
+                            code,
+                            "Redefinition of named object group $group in imported file",
+                            filename
+                        )
+                    }
+                    namedObjects[group] = objects
+                }
+
+            }
+
         }
     }
 
@@ -719,7 +926,7 @@ class OnjSchemaParser {
 
 }
 
-class OnjParserException(message: String, cause: Exception?) : RuntimeException(message, cause) {
+class OnjParserException internal constructor(message: String, cause: Exception?) : RuntimeException(message, cause) {
 
     internal constructor(message: String) : this(message, null)
 
@@ -744,7 +951,13 @@ class OnjParserException(message: String, cause: Exception?) : RuntimeException(
             )
         }
 
-        fun fromErrorMessage(charPos: Int, code: String, message: String, filename: String): OnjParserException {
+        fun fromErrorMessage(
+            charPos: Int,
+            code: String,
+            message: String,
+            filename: String,
+            cause: Exception? = null
+        ): OnjParserException {
             val messageBuilder = StringBuilder()
             val result = getLine(charPos, code)
             messageBuilder
@@ -753,7 +966,7 @@ class OnjParserException(message: String, cause: Exception?) : RuntimeException(
                 .append("\n")
             for (i in 1..result.third) messageBuilder.append(" ")
             messageBuilder.append("^------ $message\u001B[0m\n")
-            return OnjParserException(messageBuilder.toString())
+            return OnjParserException(messageBuilder.toString(), cause)
         }
 
 
