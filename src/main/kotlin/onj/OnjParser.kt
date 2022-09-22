@@ -570,7 +570,7 @@ class OnjSchemaParser private constructor(val previousFiles: List<Path> = listOf
                     namedObjects[group] = objects
                 }
 
-            }
+            } else break
 
         }
     }
