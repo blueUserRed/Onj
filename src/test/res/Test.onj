@@ -1,8 +1,7 @@
 
-import "src/test/res/import.onj" as _
+hello: "world"
 
-test: {
-    color1: !red
-    color2: !green
-    color3: !blue
-}
+export !myVar = 3
+
+is: !myVar
+

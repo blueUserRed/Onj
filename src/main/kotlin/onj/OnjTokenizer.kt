@@ -120,6 +120,8 @@ internal class OnjTokenizer {
             "POS_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.POSITIVE_INFINITY, start)
             "NEG_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.NEGATIVE_INFINITY, start)
             "NAN" -> OnjToken(OnjTokenType.FLOAT, Double.NaN, start)
+            "EXPORT" -> OnjToken(OnjTokenType.EXPORT, identifier, start)
+            "IMPORT" -> OnjToken(OnjTokenType.IMPORT, identifier, start)
             else -> OnjToken(OnjTokenType.IDENTIFIER, identifier, start)
         }
     }
@@ -257,5 +259,6 @@ enum class OnjTokenType {
     L_BRACE, R_BRACE, L_PAREN, R_PAREN, L_BRACKET, R_BRACKET, L_SHARP, R_SHARP,
     COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV, DOLLAR,
     IDENTIFIER, STRING, INT, FLOAT, BOOLEAN, NULL,
+    EXPORT, IMPORT,
     EOF
 }
