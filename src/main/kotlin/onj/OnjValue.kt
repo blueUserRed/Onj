@@ -154,8 +154,9 @@ open class OnjObject internal constructor(override val value: Map<String, OnjVal
         val entries = value.entries.toList()
         for (i in entries.indices) {
             for (x in 1..indentationLevel) builder.append("    ")
+            val cleanKey = entries[i].key.replace("\n", "").replace("\r", "")
             builder
-                .append("\"${entries[i].key}\": ")
+                .append("\"$cleanKey\": ")
                 .append(entries[i].value.toJsonString(indentationLevel + 1))
             if (i != entries.size - 1) builder.append(",")
             builder.append("\n")

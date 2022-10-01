@@ -9,7 +9,7 @@ import kotlin.math.exp
 /**
  * used for parsing a .onj file
  */
-class OnjParser private constructor(val previousFiles: List<Path> = listOf()) {
+class OnjParser private constructor(private val previousFiles: List<Path> = listOf()) {
 
     private var next: Int = 0
     private var tokens: List<OnjToken> = listOf()
