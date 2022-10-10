@@ -198,6 +198,31 @@ open class OnjObject internal constructor(override val value: Map<String, OnjVal
         return if (value[key]?.value is T) value[key]?.value as T else value[key] as T
     }
 
+    /**
+     * checks if the object has the key [key] with type [T] and returns its value. If no such key exists, [or] is
+     * returned instead
+     */
+    inline fun <reified T> getOr(key: String, or: T): T {
+        // I hate this code
+        return if (value[key]?.value is T) value[key]?.value as T else if (value[key] is T) value[key] as T else or
+    }
+
+    /**
+     * checks if a key [key] with type [T] exists and if it does, executes [then]. returns the value of [then] or null
+     * if it wasn't called
+     */
+    inline fun <reified T, U> ifHas(key: String, then: (value: T) -> U): U? {
+        return if (hasKey<T>(key)) then(value[key] as T) else null
+    }
+
+    /**
+     * checks if a key [key] with type [T] exists and if it does, executes [then]
+     */
+    inline fun <reified T> ifHas(key: String, then: (value: T) -> Unit) {
+//        if (hasKey<T>(key)) then(get<T>(key))
+        if (value[key]?.value is T) then(value[key]?.value as T) else if (value[key] is T) then(value[key] as T)
+    }
+
     private fun isValidKey(key: String): Boolean {
         return Regex("[a-zA-z_][a-zA-z\\d_]*").matches(key)
     }

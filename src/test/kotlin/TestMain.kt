@@ -23,7 +23,12 @@ fun main() {//TODO: proper tests
             "nested2" with "hi2"
         }
     }
+
     println(obj)
+
+    obj.ifHas<Long>("test") { println(it) }
+    println(obj.getOr<Double>("idontexist", 11111.1))
+
 //    println(buildOnjArray(arrayOf(
 //        null, "test", 1.01
 //    )))
