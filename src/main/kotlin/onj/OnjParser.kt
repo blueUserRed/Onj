@@ -4,7 +4,6 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
-import kotlin.math.exp
 
 /**
  * used for parsing a .onj file
@@ -293,17 +292,65 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
 
     private fun parseVariable(): OnjValue {
 
-        if (!tryConsume(OnjTokenType.IDENTIFIER))
+        if (!tryConsume(OnjTokenType.IDENTIFIER)) {
             throw OnjParserException.fromErrorToken(last(), OnjTokenType.IDENTIFIER, code, filename)
+        }
 
         val name = last().literal as String
 
-        return variables[name] ?: throw OnjParserException.fromErrorMessage(
+        var value = variables[name] ?: throw OnjParserException.fromErrorMessage(
             last().char,
             code,
             "Variable '$name' isn't defined.",
             filename
         )
+
+        while (tryConsume(OnjTokenType.DOT)) {
+            if (tryConsume(OnjTokenType.IDENTIFIER) || tryConsume(OnjTokenType.STRING)) {
+
+                if (value !is OnjObject) throw OnjParserException.fromErrorMessage(
+                    last().char,
+                    code,
+                    "Can only get an identifier from an object, but found ${value::class.simpleName}",
+                    filename
+                )
+
+                val varName = last().literal as String
+
+                value = value[varName] ?: throw OnjParserException.fromErrorMessage(
+                    last().char,
+                    code,
+                    "Identifier $varName was not defined",
+                    filename
+                )
+
+            } else if (tryConsume(OnjTokenType.INT)) {
+
+                if (value !is OnjArray) throw OnjParserException.fromErrorMessage(
+                    last().char,
+                    code,
+                    "Can only get a number from an array, but found ${value::class.simpleName}",
+                    filename
+                )
+
+                val index = last().literal as Long
+
+                if (index !in value.value.indices) throw OnjParserException.fromErrorMessage(
+                    last().char,
+                    code,
+                    "Index $index is out of bounds for length ${value.value.size}",
+                    filename
+                )
+
+                value = value[index.toInt()]
+
+            } else {
+                next--
+                break
+            }
+        }
+
+        return value
     }
 
     private fun parseCalculation(): OnjValue {

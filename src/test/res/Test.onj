@@ -1,7 +1,13 @@
 
 hello: "world"
 
-export !myVar = 3
+export !myVar = {
+    hi: "hi"
+    test: {
+        test2: 34
+    }
+    arr: [ 123, 123, 13 ]
+}
 
 is: !myVar
 

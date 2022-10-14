@@ -2,8 +2,8 @@ import onj.*
 
 fun main() {//TODO: proper tests
 
-//    val onj = OnjParser.parseFile("src/test/res/Test.onj")
-//    println(onj)
+    val onj = OnjParser.parseFile("src/test/res/import.onj")
+    println(onj)
 //    val onjSchema = OnjSchemaParser.parseFile("src/test/res/Test.onjschema")
 //    onjSchema.assertMatches(onj)
 
@@ -24,10 +24,10 @@ fun main() {//TODO: proper tests
         }
     }
 
-    println(obj)
+//    println(obj)
 
-    obj.ifHas<Long>("test") { println(it) }
-    println(obj.getOr<Double>("idontexist", 11111.1))
+//    obj.ifHas<Long>("test") { println(it) }
+//    println(obj.getOr<Double>("idontexist", 11111.1))
 
 //    println(buildOnjArray(arrayOf(
 //        null, "test", 1.01
