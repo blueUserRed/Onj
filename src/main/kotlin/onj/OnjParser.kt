@@ -278,6 +278,16 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
         else if (tryConsume(OnjTokenType.EXCLAMATION)) parseVariable()
         else if (tryConsume(OnjTokenType.L_SHARP)) parseCalculation()
         else if (tryConsume(OnjTokenType.DOLLAR)) parseNamedObject()
+        else if (tryConsume(OnjTokenType.MINUS)) {
+            if (tryConsume(OnjTokenType.INT)) OnjInt(-(last().literal as Long))
+            else if (tryConsume(OnjTokenType.FLOAT)) OnjFloat(-(last().literal as Double))
+            else throw OnjParserException.fromErrorToken(
+                current(),
+                "number",
+                code,
+                filename
+            )
+        }
         else throw OnjParserException.fromErrorToken(current(), "Value", code, filename)
     }
 
