@@ -43,6 +43,7 @@ internal class OnjTokenizer {
             '-' -> OnjToken(OnjTokenType.MINUS, null, next - 1)
             '.' -> OnjToken(OnjTokenType.DOT, null, next - 1)
             '$' -> OnjToken(OnjTokenType.DOLLAR, null, next - 1)
+            '#' -> OnjToken(OnjTokenType.HASH, null, next - 1)
             '"' -> getString('"')
             '\'' -> getString('\'')
             ' ', '\t', '\r', '\n' -> null
@@ -77,7 +78,7 @@ internal class OnjTokenizer {
                 throw OnjParserException.fromErrorMessage(start, code, "String is opened but never closed!", filename)
             }
             if (tryConsume('\\')) {
-                result.append(when(consume()) {
+                result.append(when (consume()) {
                     'n' -> "\n"
                     'r' -> "\r"
                     't' -> "\t"
@@ -159,7 +160,22 @@ internal class OnjTokenizer {
         if (!end()) next--
 
         if (end() || radix != 10 || !tryConsume('.')) {
-            return OnjToken(OnjTokenType.INT, if (isNegative) -num else num, start)
+//            if (!tryConsume('#')) {
+                return OnjToken(OnjTokenType.INT, if (isNegative) -num else num, start)
+//            }
+//            return if (tryConsume('i', 'I')) {
+//                if (num !in Long.MIN_VALUE..Long.MAX_VALUE) {
+//                    throw OnjParserException.fromErrorMessage(start, code, "number exceeds range for int", filename)
+//                }
+//                OnjToken(OnjTokenType.INT, if (isNegative) -num else num, start)
+//            } else if (tryConsume('f', 'F')) {
+//                if (num.toDouble() !in -Double.MAX_VALUE..Double.MAX_VALUE) {
+//                    throw OnjParserException.fromErrorMessage(start, code, "number exceeds range for float", filename)
+//                }
+//                OnjToken(OnjTokenType.FLOAT, if (isNegative) -num.toDouble() else num.toDouble(), start)
+//            } else {
+//                throw RuntimeException("unknown number type specifier: ${consume()}")
+//            }
         }
 
         val dotIndex = next - 1
@@ -183,50 +199,30 @@ internal class OnjTokenizer {
 
         if (wasntFloat) {
             next = dotIndex
-            return OnjToken(OnjTokenType.INT, if (isNegative) -num else num, start)
+            afterComma = 0.0
         }
 
         val commaNum = num + afterComma
-        return OnjToken(OnjTokenType.FLOAT, if (isNegative) -commaNum else commaNum, start)
-
-//        next--
-//        start = next
-//
-//        val negative = tryConsume('-')
-//
-//        var radix = 10
-//        if (tryConsume('0')) {
-//            if (tryConsume('b')) radix = 2
-//            else if (tryConsume('o')) radix = 8
-//            else if (tryConsume('x')) radix = 16
-//            else next--
-//
+//        if (!tryConsume('#')) {
+            return if (wasntFloat) {
+                OnjToken(OnjTokenType.INT, if (isNegative) -commaNum.toLong() else commaNum.toLong(), start)
+            } else {
+                OnjToken(OnjTokenType.FLOAT, if (isNegative) -commaNum else commaNum, start)
+            }
 //        }
-//
-//        var num = 0L
-//        while(!end() && consume().isLetterOrDigit()) {
-//            num *= radix
-//            try {
-//                num += last().digitToInt(radix)
-//            } catch (e: NumberFormatException) {
-//                next--
-//                val decNum = num / radix
-//                return OnjToken(OnjTokenType.INT, if (negative) -decNum else decNum, start)
+//        return if (tryConsume('i', 'I')) {
+//            if (num !in Long.MIN_VALUE..Long.MAX_VALUE) {
+//                throw OnjParserException.fromErrorMessage(start, code, "number exceeds range for int", filename)
 //            }
+//            OnjToken(OnjTokenType.INT, if (isNegative) -commaNum.toLong() else commaNum.toLong(), start)
+//        } else if (tryConsume('f', 'F')) {
+//            if (num.toDouble() !in -Double.MAX_VALUE..Double.MAX_VALUE) {
+//                throw OnjParserException.fromErrorMessage(start, code, "number exceeds range for float", filename)
+//            }
+//            OnjToken(OnjTokenType.FLOAT, if (isNegative) -commaNum else commaNum, start)
+//        } else {
+//            throw RuntimeException("unknown number type specifier: ${consume()}")
 //        }
-//        next--
-//
-//        if (end() || radix != 10 || !tryConsume('.'))  return OnjToken(OnjTokenType.INT,
-//            if (negative) -num else num, start)
-//
-//        var afterComma = 0.0
-//        var numIts = 1
-//        while(!end() && consume().isDigit()) {
-//            afterComma += last().digitToInt(10) / 10.0.pow(numIts)
-//            numIts++
-//        }
-//        val commaNum = (num + afterComma)
-//        return OnjToken(OnjTokenType.FLOAT, if (negative) -commaNum else commaNum, start)
     }
 
     private fun last(): Char = code[next - 1]
@@ -236,7 +232,15 @@ internal class OnjTokenizer {
         return last()
     }
     private fun tryConsume(char: Char): Boolean {
-        return if (code[next] == char) { next++ ; true } else false
+        return if (code[next] == char) {
+            next++
+            true
+        } else false
+    }
+
+    private fun tryConsume(vararg chars: Char): Boolean {
+        for (char in chars) if (tryConsume(char)) return true
+        return false
     }
 
     private fun end(): Boolean = next == code.length
@@ -257,7 +261,7 @@ internal data class OnjToken(val type: OnjTokenType, val literal: Any?, val char
 
 enum class OnjTokenType {
     L_BRACE, R_BRACE, L_PAREN, R_PAREN, L_BRACKET, R_BRACKET, L_SHARP, R_SHARP,
-    COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV, DOLLAR,
+    COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV, DOLLAR, HASH,
     IDENTIFIER, STRING, INT, FLOAT, BOOLEAN, NULL,
     EXPORT, IMPORT,
     EOF

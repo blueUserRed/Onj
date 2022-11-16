@@ -390,7 +390,7 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
     }
 
     private fun parseFactor(): OnjValue {
-        var left = parseLiteral()
+        var left = parseTypeConvert()
         while (true) {
             //TODO: this can probably be done better
             if (tryConsume(OnjTokenType.STAR)) {
@@ -408,6 +408,34 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
             } else break
         }
         return left
+    }
+
+    private fun parseTypeConvert(): OnjValue {
+        var toConvert = parseLiteral()
+        while (tryConsume(OnjTokenType.HASH)) {
+            consume(OnjTokenType.IDENTIFIER)
+            val convertTo = last()
+            toConvert = when (convertTo.literal as String) {
+                "i", "I" -> {
+                    if (!toConvert.isInt() && !toConvert.isFloat()) throw OnjParserException.fromErrorMessage(
+                        convertTo.char, code, "cannot convert ${toConvert::class.simpleName} to int", filename
+                    )
+                    OnjInt((toConvert.value as Number).toLong())
+                }
+                "f", "F" -> {
+                    if (!toConvert.isInt() && !toConvert.isFloat()) throw OnjParserException.fromErrorMessage(
+                        convertTo.char, code, "cannot convert ${toConvert::class.simpleName} to float", filename
+                    )
+                    OnjFloat((toConvert.value as Number).toDouble())
+                }
+                else -> throw OnjParserException.fromErrorMessage(
+                    convertTo.char, code,
+                    "unknown type specifier ${convertTo.literal}",
+                    filename
+                )
+            }
+        }
+        return toConvert
     }
 
     private fun parseLiteral(): OnjValue {
