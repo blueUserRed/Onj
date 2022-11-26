@@ -24,13 +24,13 @@ abstract class OnjValue {
      * converts the structure to a valid onj string. (variables, comments, etc. are lost)
      */
     abstract override fun toString(): String
-    internal abstract fun toString(indentationLevel: Int): String
+    abstract fun toString(indentationLevel: Int): String
 
     /**
      * converts the structure to a valid json-string
      */
     abstract fun toJsonString(): String
-    internal abstract fun toJsonString(indentationLevel: Int): String
+    abstract fun toJsonString(indentationLevel: Int): String
 }
 
 /**
