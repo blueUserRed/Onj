@@ -1,4 +1,2 @@
-
-!test = 0.5
-
-test2: <(!test * 20)#i>
+//test: <-1.0>
+test2: <sqrt(-1.0)>

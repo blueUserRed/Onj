@@ -276,8 +276,19 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
         else if (tryConsume(OnjTokenType.L_BRACE)) parseObject(last())
         else if (tryConsume(OnjTokenType.L_BRACKET)) parseArray(last())
         else if (tryConsume(OnjTokenType.EXCLAMATION)) parseVariable()
-        else if (tryConsume(OnjTokenType.L_SHARP)) parseCalculation()
+        else if (tryConsume(OnjTokenType.L_SHARP)) {
+            val result = parseCalculation()
+            consume(OnjTokenType.R_SHARP)
+            result
+        }
         else if (tryConsume(OnjTokenType.DOLLAR)) parseNamedObject()
+        else if (tryConsume(OnjTokenType.IDENTIFIER)) {
+            val functionToken = last()
+            if (!tryConsume(OnjTokenType.L_PAREN)) {
+                throw OnjParserException.fromErrorToken(tokens[next], "function call", code, filename)
+            }
+            parseFunctionCall(functionToken)
+        }
         else if (tryConsume(OnjTokenType.MINUS)) {
             if (tryConsume(OnjTokenType.INT)) OnjInt(-(last().literal as Long))
             else if (tryConsume(OnjTokenType.FLOAT)) OnjFloat(-(last().literal as Double))
@@ -365,8 +376,33 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
 
     private fun parseCalculation(): OnjValue {
         val res = parseTerm()
-        consume(OnjTokenType.R_SHARP)
         return res
+    }
+
+    private fun parseFunctionCall(functionToken: OnjToken): OnjValue {
+        val args = mutableListOf<OnjValue>()
+        while (true) {
+            args.add(parseCalculation())
+            if (tryConsume(OnjTokenType.R_PAREN)) break
+            consume(OnjTokenType.COMMA)
+        }
+        val function = OnjFunction.getFunction(functionToken.literal as String, args.size)
+        function ?: throw OnjParserException.fromErrorMessage(
+            functionToken.char,
+            code,
+            "Cannot find function ${functionToken.literal} with ${args.size} arguments",
+            filename
+        )
+        try {
+            return function(args)
+        } catch (e: Throwable) {
+            throw OnjParserException.fromErrorMessage(
+                functionToken.char,
+                code,
+                e.message ?: "",
+                filename
+            )
+        }
     }
 
     private fun parseTerm(): OnjValue {
@@ -411,7 +447,7 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
     }
 
     private fun parseTypeConvert(): OnjValue {
-        var toConvert = parseLiteral()
+        var toConvert = parseUnary()
         while (tryConsume(OnjTokenType.HASH)) {
             consume(OnjTokenType.IDENTIFIER)
             val convertTo = last()
@@ -438,6 +474,24 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
         return toConvert
     }
 
+    private fun parseUnary(): OnjValue {
+        if (!tryConsume(OnjTokenType.MINUS) && !tryConsume(OnjTokenType.PLUS)) return parseLiteral()
+        val op = last()
+        return when (val result = parseUnary()) {
+
+            is OnjInt -> if (op.type == OnjTokenType.MINUS) OnjInt(-result.value) else result
+            is OnjFloat -> if (op.type == OnjTokenType.MINUS) OnjFloat(-result.value) else result
+
+            else -> throw OnjParserException.fromErrorMessage(
+                op.char,
+                code,
+                "unary operators can only be applied to ints and floats, found ${result::class.simpleName}",
+                filename
+            )
+
+        }
+    }
+
     private fun parseLiteral(): OnjValue {
         return if (tryConsume(OnjTokenType.INT)) OnjInt(last().literal as Long)
         else if (tryConsume(OnjTokenType.FLOAT)) OnjFloat(last().literal as Double)
@@ -445,6 +499,13 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
         else if (tryConsume(OnjTokenType.BOOLEAN)) OnjBoolean(last().literal as Boolean)
         else if (tryConsume(OnjTokenType.NULL)) OnjNull()
         else if (tryConsume(OnjTokenType.EXCLAMATION)) parseVariable()
+        else if (tryConsume(OnjTokenType.IDENTIFIER)) {
+            val functionToken = last()
+            if (!tryConsume(OnjTokenType.L_PAREN)) {
+                throw OnjParserException.fromErrorToken(tokens[next], "function call", code, filename)
+            }
+            parseFunctionCall(functionToken)
+        }
         else if (tryConsume(OnjTokenType.L_PAREN)) {
             val toRet = parseTerm()
             consume(OnjTokenType.R_PAREN)
