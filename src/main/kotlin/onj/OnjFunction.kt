@@ -31,33 +31,4 @@ data class OnjFunction(
         return other.name == this.name && other.arity == this.arity
     }
 
-    companion object {
-
-        private val functions: MutableSet<OnjFunction> = mutableSetOf()
-
-        init {
-            functions.addAll(arrayOf(
-
-                OnjFunction("pow", listOf(OnjFloat::class, OnjFloat::class)) {
-                    OnjFloat((it[0].value as Double).pow(it[1].value as Double))
-                },
-
-                OnjFunction("sqrt", listOf(OnjFloat::class)) {
-                    OnjFloat(sqrt(it[0].value as Double))
-                }
-//
-            ))
-        }
-
-        fun addFunction(function: OnjFunction): Unit = run { functions.add(function) }
-
-        fun getFunction(name: String, arity: Int): OnjFunction? {
-            for (function in functions) {
-                if (function.arity == arity && function.name == name) return function
-            }
-            return null
-        }
-
-    }
-
 }

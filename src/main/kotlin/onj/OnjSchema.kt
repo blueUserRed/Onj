@@ -1,6 +1,7 @@
 package onj
 
 import java.lang.RuntimeException
+import kotlin.reflect.KClass
 
 /**
  * represents a parsed onjschema structure
@@ -254,6 +255,29 @@ class OnjSchemaNamedObjectGroup internal constructor(
     }
 }
 
+class OnjSchemaCustomDataType internal constructor(
+    private val name: String,
+    private val type: KClass<*>,
+    nullable: Boolean
+) : OnjSchema(nullable) {
+
+    override fun match(onjValue: OnjValue, parentName: String) {
+        if (onjValue.isNull()) {
+            if (nullable) return
+            throw OnjSchemaException.fromNonNullable(parentName, "custom($name)")
+        }
+        if (!type.isInstance(onjValue)) {
+            throw OnjSchemaException.fromTypeError(parentName, "custom($name)", getActualType(onjValue))
+        }
+    }
+
+    override fun getAsNullable(): OnjSchema {
+        return OnjSchemaCustomDataType(name, type, true)
+    }
+
+
+}
+
 private fun getActualType(value: OnjValue): String {
     return when (value) {
         is OnjBoolean -> "boolean"
@@ -263,7 +287,7 @@ private fun getActualType(value: OnjValue): String {
         is OnjNamedObject -> "named object"
         is OnjObject -> "object"
         is OnjArray -> "array"
-        else -> ""
+        else -> value::class.simpleName ?: ""
     }
 }
 

@@ -386,7 +386,7 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
             if (tryConsume(OnjTokenType.R_PAREN)) break
             consume(OnjTokenType.COMMA)
         }
-        val function = OnjFunction.getFunction(functionToken.literal as String, args.size)
+        val function = OnjConfig.getFunction(functionToken.literal as String, args.size)
         function ?: throw OnjParserException.fromErrorMessage(
             functionToken.char,
             code,
@@ -1001,7 +1001,19 @@ class OnjSchemaParser private constructor(val previousFiles: List<Path> = listOf
             "float" -> OnjSchemaFloat(false)
             "string" -> OnjSchemaString(false)
             "boolean" -> OnjSchemaBoolean(false)
-            else -> throw OnjParserException.fromErrorToken(last(), "type", code, filename)
+
+            else -> {
+                val name = last().literal as String
+                val type = OnjConfig.getCustomDataType(name)
+                type ?: throw OnjParserException.fromErrorMessage(
+                    last().char,
+                    code,
+                    "Unknown type ${last().literal}",
+                    filename
+                )
+                OnjSchemaCustomDataType(name, type, false)
+            }
+
         }
         if (tryConsume(OnjTokenType.QUESTION)) s.nullable = true
         return s
