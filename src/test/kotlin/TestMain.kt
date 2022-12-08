@@ -7,19 +7,19 @@ fun main() {
     //TODO: proper tests
     //TODO: boolean calculations
 
-    OnjConfig.addFunction(
-        OnjFunction(
-            "path",
-            listOf(OnjString::class)
-        ) {
-            Test(Paths.get(it[0].value as String))
-        }
-    )
-    OnjConfig.addCustomDataType("Path", Test::class)
+//    OnjConfig.addFunction(
+//        OnjFunction(
+//            "path",
+//            listOf(OnjString::class)
+//        ) {
+//            Test(Paths.get(it[0].value as String))
+//        }
+//    )
+//    OnjConfig.addCustomDataType("Path", Test::class)
 
     val onj =  OnjParser.parseFile("src/test/res/Test.onj")
-    val schema =  OnjSchemaParser.parseFile("src/test/res/Test.onjschema")
-    schema.assertMatches(onj)
+//    val schema =  OnjSchemaParser.parseFile("src/test/res/Test.onjschema")
+//    schema.assertMatches(onj)
     println(onj)
 
 }

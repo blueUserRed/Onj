@@ -464,6 +464,9 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
                     )
                     OnjFloat((toConvert.value as Number).toDouble())
                 }
+                "s", "S" -> {
+                    OnjString(toConvert.toString())
+                }
                 else -> throw OnjParserException.fromErrorMessage(
                     convertTo.char, code,
                     "unknown type specifier ${convertTo.literal}",

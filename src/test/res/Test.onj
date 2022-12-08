@@ -1,3 +1,6 @@
-//test: <-1.0>
-//test2: <sqrt(-1.0)>
-test3: path("test/test.test")
+
+!test = {
+    hi: "lksdjf"
+}
+
+hi: <!test.hi#s>
