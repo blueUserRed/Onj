@@ -327,7 +327,16 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
         )
 
         while (tryConsume(OnjTokenType.DOT)) {
-            if (tryConsume(OnjTokenType.IDENTIFIER) || tryConsume(OnjTokenType.STRING)) {
+            val start = next
+            val calResult = if (tryConsume(OnjTokenType.L_SHARP)) {
+                val result = parseCalculation()
+                consume(OnjTokenType.R_SHARP)
+                result
+            } else null
+            if (
+                calResult is OnjString ||
+                (calResult == null && (tryConsume(OnjTokenType.IDENTIFIER) || tryConsume(OnjTokenType.STRING)))
+            ) {
 
                 if (value !is OnjObject) throw OnjParserException.fromErrorMessage(
                     last().char,
@@ -336,7 +345,7 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
                     filename
                 )
 
-                val varName = last().literal as String
+                val varName = if (calResult == null) last().literal as String else calResult.value as String
 
                 value = value[varName] ?: throw OnjParserException.fromErrorMessage(
                     last().char,
@@ -345,7 +354,10 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
                     filename
                 )
 
-            } else if (tryConsume(OnjTokenType.INT)) {
+            } else if (
+                calResult is OnjInt ||
+                (calResult == null && tryConsume(OnjTokenType.INT))
+            ) {
 
                 if (value !is OnjArray) throw OnjParserException.fromErrorMessage(
                     last().char,
@@ -354,7 +366,7 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
                     filename
                 )
 
-                val index = last().literal as Long
+                val index = if (calResult == null) last().literal as Long else calResult.value as Long
 
                 if (index !in value.value.indices) throw OnjParserException.fromErrorMessage(
                     last().char,
@@ -366,6 +378,14 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
                 value = value[index.toInt()]
 
             } else {
+
+                if (calResult != null) throw OnjParserException.fromErrorMessage(
+                    tokens[start].char,
+                    code,
+                    "Result of calculation must either be a string or an int",
+                    filename
+                )
+
                 next--
                 break
             }

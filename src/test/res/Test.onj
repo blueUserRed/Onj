@@ -1,6 +1,8 @@
 
-!test = {
-    hi: "lksdjf"
-}
+!i = 0
 
-hi: <!test.hi#s>
+!test = [
+    "hi", "hi2", "hi3", "hi4"
+]
+
+test: !test.<!i + 2>
