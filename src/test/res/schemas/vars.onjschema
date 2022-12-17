@@ -1,0 +1,16 @@
+
+!myInt = int
+
+test: !myInt
+
+!obj = {
+    a: string
+    b: string
+}
+
+coolObj: {
+    i: int
+    ...!obj
+}
+
+obj: !obj

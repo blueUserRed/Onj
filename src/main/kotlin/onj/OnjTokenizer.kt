@@ -1,5 +1,6 @@
 package onj
 
+import onj.parser.OnjParserException
 import kotlin.math.pow
 
 internal class OnjTokenizer {
@@ -77,7 +78,7 @@ internal class OnjTokenizer {
             if (end() || (endChar != '\'' && last() == '\n')) {
                 throw OnjParserException.fromErrorMessage(start, code, "String is opened but never closed!", filename)
             }
-            if (tryConsume('\\')) {
+            if (last() == '\\') {
                 result.append(when (consume()) {
                     'n' -> "\n"
                     'r' -> "\r"

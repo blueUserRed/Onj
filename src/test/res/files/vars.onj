@@ -1,0 +1,19 @@
+
+test: 2
+
+!obj = {
+    a: "lskdjf"
+}
+
+coolObj: {
+    ...!obj
+    b: "lsd"
+    i: 34
+}
+
+!aString = "string"
+
+obj: {
+    a: !aString
+    b: "lsjdf"
+}

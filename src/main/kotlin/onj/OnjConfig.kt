@@ -18,7 +18,27 @@ object OnjConfig {
 
             OnjFunction("sqrt", listOf(OnjFloat::class)) {
                 OnjFloat(sqrt(it[0].value as Double))
-            }
+            },
+
+            OnjFunction("operator%plus", listOf(OnjInt::class, OnjInt::class)) { OnjInt(it[0].value as Long + it[1].value as Long) },
+            OnjFunction("operator%plus", listOf(OnjInt::class, OnjFloat::class)) { OnjFloat(it[0].value as Long + it[1].value as Double) },
+            OnjFunction("operator%plus", listOf(OnjFloat::class, OnjInt::class)) { OnjFloat(it[0].value as Double + it[1].value as Long) },
+            OnjFunction("operator%plus", listOf(OnjFloat::class, OnjFloat::class)) { OnjFloat(it[0].value as Double + it[1].value as Double) },
+
+            OnjFunction("operator%minus", listOf(OnjInt::class, OnjInt::class)) { OnjInt(it[0].value as Long - it[1].value as Long) },
+            OnjFunction("operator%minus", listOf(OnjInt::class, OnjFloat::class)) { OnjFloat(it[0].value as Long - it[1].value as Double) },
+            OnjFunction("operator%minus", listOf(OnjFloat::class, OnjInt::class)) { OnjFloat(it[0].value as Double - it[1].value as Long) },
+            OnjFunction("operator%minus", listOf(OnjFloat::class, OnjFloat::class)) { OnjFloat(it[0].value as Double - it[1].value as Double) },
+
+            OnjFunction("operator%mult", listOf(OnjInt::class, OnjInt::class)) { OnjInt(it[0].value as Long * it[1].value as Long) },
+            OnjFunction("operator%mult", listOf(OnjInt::class, OnjFloat::class)) { OnjFloat(it[0].value as Long * it[1].value as Double) },
+            OnjFunction("operator%mult", listOf(OnjFloat::class, OnjInt::class)) { OnjFloat(it[0].value as Double * it[1].value as Long) },
+            OnjFunction("operator%mult", listOf(OnjFloat::class, OnjFloat::class)) { OnjFloat(it[0].value as Double * it[1].value as Double) },
+
+            OnjFunction("operator%div", listOf(OnjInt::class, OnjInt::class)) { OnjInt(it[0].value as Long / it[1].value as Long) },
+            OnjFunction("operator%div", listOf(OnjInt::class, OnjFloat::class)) { OnjFloat(it[0].value as Long / it[1].value as Double) },
+            OnjFunction("operator%div", listOf(OnjFloat::class, OnjInt::class)) { OnjFloat(it[0].value as Double / it[1].value as Long) },
+            OnjFunction("operator%div", listOf(OnjFloat::class, OnjFloat::class)) { OnjFloat(it[0].value as Double / it[1].value as Double) },
 //
         ))
     }
@@ -31,11 +51,15 @@ object OnjConfig {
 
     fun addFunction(function: OnjFunction): Unit = run { functions.add(function) }
 
-    fun getFunction(name: String, arity: Int): OnjFunction? {
-        for (function in functions) {
-            if (function.arity == arity && function.name == name) return function
+    fun getFunction(name: String, args: List<OnjValue>): OnjFunction? = functions.firstOrNull {
+        if (it.name != name || it.arity != args.size) return@firstOrNull false
+
+        val params = it.params
+        for (i in args.indices) {
+            if (!params[i].isInstance(args[i])) return@firstOrNull false
         }
-        return null
+
+        return@firstOrNull true
     }
 
 

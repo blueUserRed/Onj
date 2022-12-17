@@ -1,8 +1,0 @@
-
-!i = 0
-
-!test = [
-    "hi", "hi2", "hi3", "hi4"
-]
-
-test: !test.<!i + 2>

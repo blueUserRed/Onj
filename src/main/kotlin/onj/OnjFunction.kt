@@ -1,12 +1,10 @@
 package onj
 
-import kotlin.math.pow
-import kotlin.math.sqrt
 import kotlin.reflect.KClass
 
 data class OnjFunction(
     val name: String,
-    private val params: List<KClass<*>>,
+    val params: List<KClass<*>>,
     private val function: (List<OnjValue>) -> OnjValue
 ) {
 
