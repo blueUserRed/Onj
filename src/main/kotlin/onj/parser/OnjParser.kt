@@ -413,7 +413,7 @@ class OnjParser private constructor(private val previousFiles: List<Path> = list
         function ?: throw OnjParserException.fromErrorMessage(
             functionToken.char,
             code,
-            "Cannot find function ${functionToken.literal} with ${args.size} arguments",
+            "Cannot find function ${functionToken.literal}",
             filename
         )
         try {

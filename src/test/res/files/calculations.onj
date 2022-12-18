@@ -1,0 +1,8 @@
+
+anInt: (1 + 2)
+anInt2: (5 / 2)
+aFloat: (4.0 + 12)
+is10: (2 + 4 * 2)
+string10: ((2 + 4 * 2)#s)
+aFloat: (4#f)
+string8: (pow(2.0, 3.0)#i#s)

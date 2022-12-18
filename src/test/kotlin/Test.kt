@@ -15,6 +15,9 @@ abstract class Test {
         val tests = this::class
             .functions
             .filter { it.name.startsWith("test") }
+            .filter { test ->
+                test.annotations.find { it is TestCase } != null
+            }
 
         var failed = 0
 
@@ -49,10 +52,14 @@ abstract class Test {
 
     }
 
+    @Target(AnnotationTarget.FUNCTION)
+    @Retention(AnnotationRetention.RUNTIME)
+    annotation class TestCase
+
     fun assertEquals(first: Any?, second: Any?) {
-        if (first != second) throw TestException()
+        if (first != second) throw TestException("assertion failed: $first != $second")
     }
 
-    class TestException : RuntimeException()
+    class TestException(message: String? = null) : RuntimeException(message)
 
 }
