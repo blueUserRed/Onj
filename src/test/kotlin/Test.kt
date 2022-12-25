@@ -1,7 +1,5 @@
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.jvm.javaField
 
 // There are libraries that do exactly this but a thousand times better, but that wouldn't be fun
 abstract class Test {

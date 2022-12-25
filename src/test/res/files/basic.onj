@@ -1,21 +1,22 @@
 
-arr: [ 2, "string", 234.342, false, null ]
-arr2: ["lksdjf""sdfsdf""sldfj", 'kjsdf'] arr3: [{test: null"x":true}]
-arr3: [ 3, 4, null, 5 ]
+arr: [ 2, "string", 234.342, false, null ],
+arr2: [ "lksdjf", "sdfsdf", "sldfj", 'kjsdf'],
+arr3: [ { test: null, "x": true } ],
+arr4: [ 3, 4, null, 5 ],
 
 obj: {
-    "1": "string"
-    a: 234
-    'b': true
-}
+    "1": "string",
+    a: 234,
+    'b': true,
+},
 
-obj2: null
+obj2: null,
 
-twoElements: [ true, false ]
+twoElements: [ true, false ],
 
 any: {
-    hi: "ljsdf"
-    test: null
-    a: { b: 3 }
-    b: [1, 2, 3]
+    hi: "ljsdf",
+    test: null,
+    a: { b: 3 },
+    b: [1, 2, 3],
 }

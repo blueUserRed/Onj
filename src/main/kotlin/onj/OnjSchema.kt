@@ -42,7 +42,7 @@ abstract class OnjSchema internal constructor(_nullable: Boolean) {
 /**
  * the schema of a boolean
  */
-class OnjSchemaBoolean internal constructor(nullable: Boolean) : OnjSchema(nullable) {
+class OnjSchemaBoolean(nullable: Boolean) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
@@ -60,7 +60,7 @@ class OnjSchemaBoolean internal constructor(nullable: Boolean) : OnjSchema(nulla
 /**
  * the schema of an Int
  */
-class OnjSchemaInt internal constructor(nullable: Boolean) : OnjSchema(nullable) {
+class OnjSchemaInt(nullable: Boolean) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
@@ -78,7 +78,7 @@ class OnjSchemaInt internal constructor(nullable: Boolean) : OnjSchema(nullable)
 /**
  * the schema of a float
  */
-class OnjSchemaFloat internal constructor(nullable: Boolean) : OnjSchema(nullable) {
+class OnjSchemaFloat(nullable: Boolean) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
@@ -96,7 +96,7 @@ class OnjSchemaFloat internal constructor(nullable: Boolean) : OnjSchema(nullabl
 /**
  * the schema of a string
  */
-class OnjSchemaString internal constructor(nullable: Boolean) : OnjSchema(nullable) {
+class OnjSchemaString(nullable: Boolean) : OnjSchema(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
@@ -292,6 +292,8 @@ private fun getActualType(value: OnjValue): String {
 }
 
 internal class OnjSchemaNamedObject(val name: String, val obj: OnjSchemaObject)
+
+fun List<OnjSchema>.toSchemaArray(): OnjSchemaArray = OnjSchemaArray(false, this)
 
 class OnjSchemaException(message: String) : RuntimeException(message) {
 

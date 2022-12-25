@@ -12,6 +12,7 @@ import java.nio.file.Paths
 
 /**
  * used for parsing a .onjschema file
+ * //TODO: give this the same treatment as [OnjParser]
  */
 class OnjSchemaParser private constructor(val previousFiles: List<Path> = listOf()) {
 
@@ -51,10 +52,6 @@ class OnjSchemaParser private constructor(val previousFiles: List<Path> = listOf
             if (tryConsume(OnjTokenType.EXCLAMATION)) parseVariableDeclaration(false)
             else if (tryConsume(OnjTokenType.IMPORT)) parseImport()
             else if (tryConsume(OnjTokenType.DOLLAR)) parseNamedObject()
-            else if (tryConsume(OnjTokenType.EXPORT)) {
-                consume(OnjTokenType.EXCLAMATION)
-                parseVariableDeclaration(true)
-            }
             else {
                 val key = if (tryConsume(OnjTokenType.IDENTIFIER)) {
                     last().literal as String

@@ -1,7 +1,7 @@
 
 arr: [ int, string, float, boolean, string? ]
 arr2: string[*]arr3: [{test: int?"x":boolean}]
-arr3: int?[*]?
+arr4: int?[*]?
 
 obj: {
     "1": string

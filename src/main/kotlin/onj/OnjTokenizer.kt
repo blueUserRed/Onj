@@ -36,6 +36,7 @@ internal class OnjTokenizer {
             '>' -> OnjToken(OnjTokenType.R_SHARP, null, next - 1)
             ':' -> OnjToken(OnjTokenType.COLON, null, next - 1)
             ',' -> OnjToken(OnjTokenType.COMMA, null, next - 1)
+            ';' -> OnjToken(OnjTokenType.SEMICOLON, null, next - 1)
             '!' -> OnjToken(OnjTokenType.EXCLAMATION, null, next - 1)
             '=' -> OnjToken(OnjTokenType.EQUALS, null, next - 1)
             '?' -> OnjToken(OnjTokenType.QUESTION, null, next - 1)
@@ -128,8 +129,9 @@ internal class OnjTokenizer {
             "POS_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.POSITIVE_INFINITY, start)
             "NEG_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.NEGATIVE_INFINITY, start)
             "NAN" -> OnjToken(OnjTokenType.FLOAT, Double.NaN, start)
-            "EXPORT" -> OnjToken(OnjTokenType.EXPORT, identifier, start)
+//            "EXPORT" -> OnjToken(OnjTokenType.EXPORT, identifier, start)
             "IMPORT" -> OnjToken(OnjTokenType.IMPORT, identifier, start)
+            "VAR" -> OnjToken(OnjTokenType.VAR, identifier, start)
             else -> OnjToken(OnjTokenType.IDENTIFIER, identifier, start)
         }
     }
@@ -239,8 +241,8 @@ internal data class OnjToken(val type: OnjTokenType, val literal: Any?, val char
 
 enum class OnjTokenType {
     L_BRACE, R_BRACE, L_PAREN, R_PAREN, L_BRACKET, R_BRACKET, L_SHARP, R_SHARP,
-    COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV, DOLLAR, HASH,
+    COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV, DOLLAR, HASH, SEMICOLON,
     IDENTIFIER, STRING, INT, FLOAT, BOOLEAN, NULL,
-    EXPORT, IMPORT,
+    IMPORT, VAR,
     EOF
 }

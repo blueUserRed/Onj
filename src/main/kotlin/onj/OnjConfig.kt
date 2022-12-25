@@ -12,33 +12,33 @@ object OnjConfig {
     init {
         functions.addAll(arrayOf(
 
-            OnjFunction("pow", listOf(OnjFloat::class, OnjFloat::class)) {
+            OnjFunction("pow", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) {
                 OnjFloat((it[0].value as Double).pow(it[1].value as Double))
             },
 
-            OnjFunction("sqrt", listOf(OnjFloat::class)) {
+            OnjFunction("sqrt", listOf(OnjSchemaFloat(false)).toSchemaArray()) {
                 OnjFloat(sqrt(it[0].value as Double))
             },
 
-            OnjFunction("operator%plus", listOf(OnjInt::class, OnjInt::class)) { OnjInt(it[0].value as Long + it[1].value as Long) },
-            OnjFunction("operator%plus", listOf(OnjInt::class, OnjFloat::class)) { OnjFloat(it[0].value as Long + it[1].value as Double) },
-            OnjFunction("operator%plus", listOf(OnjFloat::class, OnjInt::class)) { OnjFloat(it[0].value as Double + it[1].value as Long) },
-            OnjFunction("operator%plus", listOf(OnjFloat::class, OnjFloat::class)) { OnjFloat(it[0].value as Double + it[1].value as Double) },
+            OnjFunction("operator%plus", listOf(OnjSchemaInt(false), OnjSchemaInt(false)).toSchemaArray()) { OnjInt(it[0].value as Long + it[1].value as Long) },
+            OnjFunction("operator%plus", listOf(OnjSchemaInt(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Long + it[1].value as Double) },
+            OnjFunction("operator%plus", listOf(OnjSchemaFloat(false), OnjSchemaInt(false)).toSchemaArray()) { OnjFloat(it[0].value as Double + it[1].value as Long) },
+            OnjFunction("operator%plus", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Double + it[1].value as Double) },
 
-            OnjFunction("operator%minus", listOf(OnjInt::class, OnjInt::class)) { OnjInt(it[0].value as Long - it[1].value as Long) },
-            OnjFunction("operator%minus", listOf(OnjInt::class, OnjFloat::class)) { OnjFloat(it[0].value as Long - it[1].value as Double) },
-            OnjFunction("operator%minus", listOf(OnjFloat::class, OnjInt::class)) { OnjFloat(it[0].value as Double - it[1].value as Long) },
-            OnjFunction("operator%minus", listOf(OnjFloat::class, OnjFloat::class)) { OnjFloat(it[0].value as Double - it[1].value as Double) },
+            OnjFunction("operator%minus", listOf(OnjSchemaInt(false), OnjSchemaInt(false)).toSchemaArray()) { OnjInt(it[0].value as Long - it[1].value as Long) },
+            OnjFunction("operator%minus", listOf(OnjSchemaInt(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Long - it[1].value as Double) },
+            OnjFunction("operator%minus", listOf(OnjSchemaFloat(false), OnjSchemaInt(false)).toSchemaArray()) { OnjFloat(it[0].value as Double - it[1].value as Long) },
+            OnjFunction("operator%minus", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Double - it[1].value as Double) },
 
-            OnjFunction("operator%mult", listOf(OnjInt::class, OnjInt::class)) { OnjInt(it[0].value as Long * it[1].value as Long) },
-            OnjFunction("operator%mult", listOf(OnjInt::class, OnjFloat::class)) { OnjFloat(it[0].value as Long * it[1].value as Double) },
-            OnjFunction("operator%mult", listOf(OnjFloat::class, OnjInt::class)) { OnjFloat(it[0].value as Double * it[1].value as Long) },
-            OnjFunction("operator%mult", listOf(OnjFloat::class, OnjFloat::class)) { OnjFloat(it[0].value as Double * it[1].value as Double) },
+            OnjFunction("operator%mult", listOf(OnjSchemaInt(false), OnjSchemaInt(false)).toSchemaArray()) { OnjInt(it[0].value as Long * it[1].value as Long) },
+            OnjFunction("operator%mult", listOf(OnjSchemaInt(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Long * it[1].value as Double) },
+            OnjFunction("operator%mult", listOf(OnjSchemaFloat(false), OnjSchemaInt(false)).toSchemaArray()) { OnjFloat(it[0].value as Double * it[1].value as Long) },
+            OnjFunction("operator%mult", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Double * it[1].value as Double) },
 
-            OnjFunction("operator%div", listOf(OnjInt::class, OnjInt::class)) { OnjInt(it[0].value as Long / it[1].value as Long) },
-            OnjFunction("operator%div", listOf(OnjInt::class, OnjFloat::class)) { OnjFloat(it[0].value as Long / it[1].value as Double) },
-            OnjFunction("operator%div", listOf(OnjFloat::class, OnjInt::class)) { OnjFloat(it[0].value as Double / it[1].value as Long) },
-            OnjFunction("operator%div", listOf(OnjFloat::class, OnjFloat::class)) { OnjFloat(it[0].value as Double / it[1].value as Double) },
+            OnjFunction("operator%div", listOf(OnjSchemaInt(false), OnjSchemaInt(false)).toSchemaArray()) { OnjInt(it[0].value as Long / it[1].value as Long) },
+            OnjFunction("operator%div", listOf(OnjSchemaInt(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Long / it[1].value as Double) },
+            OnjFunction("operator%div", listOf(OnjSchemaFloat(false), OnjSchemaInt(false)).toSchemaArray()) { OnjFloat(it[0].value as Double / it[1].value as Long) },
+            OnjFunction("operator%div", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Double / it[1].value as Double) },
 //
         ))
     }
@@ -52,14 +52,7 @@ object OnjConfig {
     fun addFunction(function: OnjFunction): Unit = run { functions.add(function) }
 
     fun getFunction(name: String, args: List<OnjValue>): OnjFunction? = functions.firstOrNull {
-        if (it.name != name || it.arity != args.size) return@firstOrNull false
-
-        val params = it.params
-        for (i in args.indices) {
-            if (!params[i].isInstance(args[i])) return@firstOrNull false
-        }
-
-        return@firstOrNull true
+        return@firstOrNull it.name == name && it.paramsSchema.check(OnjArray(args)) == null
     }
 
 

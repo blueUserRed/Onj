@@ -1,32 +1,27 @@
 package onj
 
-import kotlin.reflect.KClass
-
 data class OnjFunction(
     val name: String,
-    val params: List<KClass<*>>,
+    val paramsSchema: OnjSchemaArray,
     private val function: (List<OnjValue>) -> OnjValue
 ) {
 
-    val arity = params.size
-
     operator fun invoke(params: List<OnjValue>): OnjValue {
-        if (params.size != arity) {
-            throw RuntimeException("function takes $arity arguments, but was called with ${params.size}")
-        }
-        for (i in params.indices) {
-            if (!this.params[i].isInstance(params[i])) {
-                throw RuntimeException("operand at position ${i + 1} is expected to have type" +
-                        "${this.params[i].simpleName} but is ${params[i]::class.simpleName}")
-            }
-        }
+        paramsSchema.assertMatches(OnjArray(params))
         return function(params)
     }
 
     override fun equals(other: Any?): Boolean {
         if (other === this) return true
         if (other !is OnjFunction) return false
-        return other.name == this.name && other.arity == this.arity
+        return other.name == this.name
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + paramsSchema.hashCode()
+        result = 31 * result + function.hashCode()
+        return result
     }
 
 }
