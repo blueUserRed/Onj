@@ -74,11 +74,14 @@ internal class OnjTokenizer {
     private fun getString(endChar: Char): OnjToken {
         start = next
         val result: StringBuilder = StringBuilder()
+        if (end()) {
+            throw OnjParserException.fromErrorMessage(start, code, "String is opened but never closed!", filename)
+        }
         while (consume() != endChar) {
-            if (end() || (endChar != '\'' && last() == '\n')) {
-                throw OnjParserException.fromErrorMessage(start, code, "String is opened but never closed!", filename)
-            }
             if (last() == '\\') {
+                if (end()) {
+                    throw OnjParserException.fromErrorMessage(start, code, "String is opened but never closed!", filename)
+                }
                 result.append(when (consume()) {
                     'n' -> "\n"
                     'r' -> "\r"
@@ -90,6 +93,9 @@ internal class OnjTokenizer {
                         "Unrecognized Escape-character '${last()}'", filename)
                 })
             } else result.append(last())
+            if (end() || (endChar != '\'' && last() == '\n')) {
+                throw OnjParserException.fromErrorMessage(start, code, "String is opened but never closed!", filename)
+            }
         }
         return OnjToken(OnjTokenType.STRING, result.toString(), start - 1)
     }
@@ -161,22 +167,7 @@ internal class OnjTokenizer {
         if (!end()) next--
 
         if (end() || radix != 10 || !tryConsume('.')) {
-//            if (!tryConsume('#')) {
-                return OnjToken(OnjTokenType.INT, if (isNegative) -num else num, start)
-//            }
-//            return if (tryConsume('i', 'I')) {
-//                if (num !in Long.MIN_VALUE..Long.MAX_VALUE) {
-//                    throw OnjParserException.fromErrorMessage(start, code, "number exceeds range for int", filename)
-//                }
-//                OnjToken(OnjTokenType.INT, if (isNegative) -num else num, start)
-//            } else if (tryConsume('f', 'F')) {
-//                if (num.toDouble() !in -Double.MAX_VALUE..Double.MAX_VALUE) {
-//                    throw OnjParserException.fromErrorMessage(start, code, "number exceeds range for float", filename)
-//                }
-//                OnjToken(OnjTokenType.FLOAT, if (isNegative) -num.toDouble() else num.toDouble(), start)
-//            } else {
-//                throw RuntimeException("unknown number type specifier: ${consume()}")
-//            }
+            return OnjToken(OnjTokenType.INT, if (isNegative) -num else num, start)
         }
 
         val dotIndex = next - 1
@@ -204,26 +195,12 @@ internal class OnjTokenizer {
         }
 
         val commaNum = num + afterComma
-//        if (!tryConsume('#')) {
-            return if (wasntFloat) {
-                OnjToken(OnjTokenType.INT, if (isNegative) -commaNum.toLong() else commaNum.toLong(), start)
-            } else {
-                OnjToken(OnjTokenType.FLOAT, if (isNegative) -commaNum else commaNum, start)
-            }
-//        }
-//        return if (tryConsume('i', 'I')) {
-//            if (num !in Long.MIN_VALUE..Long.MAX_VALUE) {
-//                throw OnjParserException.fromErrorMessage(start, code, "number exceeds range for int", filename)
-//            }
-//            OnjToken(OnjTokenType.INT, if (isNegative) -commaNum.toLong() else commaNum.toLong(), start)
-//        } else if (tryConsume('f', 'F')) {
-//            if (num.toDouble() !in -Double.MAX_VALUE..Double.MAX_VALUE) {
-//                throw OnjParserException.fromErrorMessage(start, code, "number exceeds range for float", filename)
-//            }
-//            OnjToken(OnjTokenType.FLOAT, if (isNegative) -commaNum else commaNum, start)
-//        } else {
-//            throw RuntimeException("unknown number type specifier: ${consume()}")
-//        }
+        return if (wasntFloat) {
+            OnjToken(OnjTokenType.INT, if (isNegative) -commaNum.toLong() else commaNum.toLong(), start)
+        } else {
+            OnjToken(OnjTokenType.FLOAT, if (isNegative) -commaNum else commaNum, start)
+        }
+
     }
 
     private fun last(): Char = code[next - 1]

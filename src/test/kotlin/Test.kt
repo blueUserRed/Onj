@@ -1,20 +1,21 @@
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.javaField
 
 // There are libraries that do exactly this but a thousand times better, but that wouldn't be fun
 abstract class Test {
 
-    private var toExpect: KClass<*>? = null
+    protected var toExpect: KClass<*>? = null
 
-    fun <T : Throwable> expect(t: KClass<T>) {
-        toExpect = t
+    protected inline fun <reified T : Throwable> expect() {
+        toExpect = T::class
     }
 
     fun run() {
 
         val tests = this::class
             .functions
-            .filter { it.name.startsWith("test") }
             .filter { test ->
                 test.annotations.find { it is TestCase } != null
             }
@@ -29,7 +30,8 @@ abstract class Test {
                 if (toExpect == null) {
                     println("${test.name}: successful")
                 } else {
-                    println("${test.name}, but expected exception ${toExpect!!.simpleName}")
+                    println("${test.name} didn't throw expected exception ${toExpect!!.simpleName}")
+                    failed++
                 }
             } catch (t: Throwable) {
                 val e = t.cause
