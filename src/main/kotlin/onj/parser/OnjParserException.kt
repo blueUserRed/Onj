@@ -49,13 +49,15 @@ class OnjParserException internal constructor(message: String, cause: Exception?
 
 
         private fun getLine(charPos: Int, code: String): Triple<String, Int, Int> {
-            //TODO: judging by the code is was probably 3am when i wrote this
+            //TODO: judging by the code it was probably 3am when i wrote this
+
             val c = code + "\n" //lol
             var lineCount = 0
             var cur = 0
             var lastLineStart = 0
             var searchedLineStart = -1
             var searchedLineEnd = 0
+            // this gives me nightmares every time I open this file
             while (cur < c.length) {
                 if (cur >= charPos) searchedLineStart = lastLineStart
                 if (c[cur] == '\r') {

@@ -30,16 +30,20 @@ object OnjConfig {
             OnjFunction("operator%minus", listOf(OnjSchemaFloat(false), OnjSchemaInt(false)).toSchemaArray()) { OnjFloat(it[0].value as Double - it[1].value as Long) },
             OnjFunction("operator%minus", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Double - it[1].value as Double) },
 
-            OnjFunction("operator%mult", listOf(OnjSchemaInt(false), OnjSchemaInt(false)).toSchemaArray()) { OnjInt(it[0].value as Long * it[1].value as Long) },
-            OnjFunction("operator%mult", listOf(OnjSchemaInt(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Long * it[1].value as Double) },
-            OnjFunction("operator%mult", listOf(OnjSchemaFloat(false), OnjSchemaInt(false)).toSchemaArray()) { OnjFloat(it[0].value as Double * it[1].value as Long) },
-            OnjFunction("operator%mult", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Double * it[1].value as Double) },
+            OnjFunction("operator%star", listOf(OnjSchemaInt(false), OnjSchemaInt(false)).toSchemaArray()) { OnjInt(it[0].value as Long * it[1].value as Long) },
+            OnjFunction("operator%star", listOf(OnjSchemaInt(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Long * it[1].value as Double) },
+            OnjFunction("operator%star", listOf(OnjSchemaFloat(false), OnjSchemaInt(false)).toSchemaArray()) { OnjFloat(it[0].value as Double * it[1].value as Long) },
+            OnjFunction("operator%star", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Double * it[1].value as Double) },
 
             OnjFunction("operator%div", listOf(OnjSchemaInt(false), OnjSchemaInt(false)).toSchemaArray()) { OnjInt(it[0].value as Long / it[1].value as Long) },
             OnjFunction("operator%div", listOf(OnjSchemaInt(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Long / it[1].value as Double) },
             OnjFunction("operator%div", listOf(OnjSchemaFloat(false), OnjSchemaInt(false)).toSchemaArray()) { OnjFloat(it[0].value as Double / it[1].value as Long) },
             OnjFunction("operator%div", listOf(OnjSchemaFloat(false), OnjSchemaFloat(false)).toSchemaArray()) { OnjFloat(it[0].value as Double / it[1].value as Double) },
-//
+
+            OnjFunction("convert%string", listOf(OnjSchemaAny()).toSchemaArray()) { OnjString(it[0].toString()) },
+            OnjFunction("convert%int", listOf(OnjSchemaFloat(false)).toSchemaArray()) { OnjInt((it[0].value as Double).toLong()) },
+            OnjFunction("convert%float", listOf(OnjSchemaInt(false)).toSchemaArray()) { OnjFloat((it[0].value as Long).toDouble()) }
+
         ))
     }
 

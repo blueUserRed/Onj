@@ -4,5 +4,5 @@ anInt2: int
 aFloat: float
 is10: int
 string10: string
-aFloat: float
+aFloat2: float
 string8: string

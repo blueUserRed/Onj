@@ -1,19 +1,19 @@
 
-test: 2
+test: 2,
 
-!obj = {
+var obj = {
     a: "lskdjf"
-}
+};
 
 coolObj: {
-    ...!obj
-    b: "lsd"
-    i: 34
-}
+    ...obj,
+    b: "lsfd",
+    i: 34,
+},
 
-!aString = "string"
+var aString = "string";
 
 obj: {
-    a: !aString
+    a: aString,
     b: "lsjdf"
 }

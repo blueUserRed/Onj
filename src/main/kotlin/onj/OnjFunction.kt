@@ -1,14 +1,30 @@
 package onj
 
+import onj.parser.OnjParserException
+
 data class OnjFunction(
     val name: String,
     val paramsSchema: OnjSchemaArray,
     private val function: (List<OnjValue>) -> OnjValue
 ) {
 
-    operator fun invoke(params: List<OnjValue>): OnjValue {
-        paramsSchema.assertMatches(OnjArray(params))
-        return function(params)
+    internal operator fun invoke(
+        params: List<OnjValue>,
+        functionCallToken: OnjToken,
+        code: String,
+        fileName: String
+    ): OnjValue {
+        return try {
+            function(params)
+        } catch (e: Exception) {
+            throw OnjParserException.fromErrorMessage(
+                functionCallToken.char,
+                code,
+                "JVM-Code threw an exception when evaluation function $name",
+                fileName,
+                e
+            )
+        }
     }
 
     override fun equals(other: Any?): Boolean {

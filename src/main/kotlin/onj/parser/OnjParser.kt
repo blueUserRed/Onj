@@ -103,17 +103,17 @@ class OnjParser private constructor(
                     "no overload for operator $operatorName and types ${left::class.simpleName}, ${right::class.simpleName}",
                     fileName
                 )
-            left = function(functionArgs)
+            left = function(functionArgs, operator, code, fileName)
         }
         return left
     }
 
     private fun parseFactor(): OnjValue {
-        var left = parseNegation()
+        var left = parseTypeConversion()
         while (tryConsume(OnjTokenType.STAR, OnjTokenType.DIV)) {
             val operator = last()
             val operatorName = operator.type.toString().lowercase()
-            val right = parseNegation()
+            val right = parseTypeConversion()
             val functionArgs = listOf(left, right)
             val function = OnjConfig.getFunction("operator%$operatorName", functionArgs)
                 ?: throw OnjParserException.fromErrorMessage(
@@ -121,13 +121,31 @@ class OnjParser private constructor(
                     "no overload for operator $operatorName and types ${left::class.simpleName}, ${right::class.simpleName}",
                     fileName
                 )
-            left = function(functionArgs)
+            left = function(functionArgs, operator, code, fileName)
+        }
+        return left
+    }
+
+    private fun parseTypeConversion(): OnjValue {
+        var left = parseNegation()
+        while (tryConsume(OnjTokenType.HASH)) {
+            val convertToToken = consume(OnjTokenType.IDENTIFIER)
+            val convertTo = convertToToken.literal as String
+
+            val functionArgs = listOf(left)
+            val function = OnjConfig.getFunction("convert%$convertTo", functionArgs)
+                ?: throw OnjParserException.fromErrorMessage(
+                    convertToToken.char, code,
+                    "no overload for converting ${left::class.simpleName} to '$convertTo'",
+                    fileName
+                )
+            left = function(functionArgs, convertToToken, code, fileName)
         }
         return left
     }
 
     private fun parseNegation(): OnjValue {
-        if (!tryConsume(OnjTokenType.MINUS)) return parseLiteral()
+        if (!tryConsume(OnjTokenType.MINUS)) return parseVariableAccess()
 
         val operator = last()
 
@@ -141,7 +159,63 @@ class OnjParser private constructor(
                 fileName
             )
 
-        return function(functionArgs)
+        return function(functionArgs, operator, code, fileName)
+    }
+
+    private fun parseVariableAccess(): OnjValue {
+        var left = parseLiteral()
+        while (tryConsume(OnjTokenType.DOT)) {
+
+            val token = consume()
+            val accessWith = when (token.type) {
+
+                OnjTokenType.L_PAREN -> {
+                    val value = parseValue()
+                    consume(OnjTokenType.R_PAREN)
+                    value
+                }
+
+                OnjTokenType.STRING, OnjTokenType.IDENTIFIER -> OnjString(token.literal as String)
+                OnjTokenType.INT -> OnjInt(token.literal as Long)
+
+                else -> throw OnjParserException.fromErrorToken(
+                    token, "accessor", code, fileName
+                )
+
+            }
+
+            if (accessWith.isString()) {
+                if (!left.isOnjObject()) throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Cannot access an object using type ${accessWith::class.simpleName}",
+                    fileName
+                )
+                left = (left as OnjObject)[accessWith.value as String] ?: throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Identifier ${accessWith.value as String} is not defined",
+                    fileName
+                )
+            } else if (accessWith.isInt()) {
+                if (!left.isOnjArray()) throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Cannot access an array using type ${accessWith::class.simpleName}",
+                    fileName
+                )
+                left = (left as OnjArray).value.getOrNull((accessWith.value as Long).toInt())
+                    ?: throw OnjParserException.fromErrorMessage(
+                        token.char, code,
+                        "Array does not define index ${accessWith.value as Long}",
+                        fileName
+                    )
+            } else {
+                throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Expected an identifier, an int or a string, found ${accessWith::class.simpleName}",
+                    fileName
+                )
+            }
+        }
+        return left
     }
 
     private fun parseLiteral(): OnjValue {
@@ -179,7 +253,33 @@ class OnjParser private constructor(
 
             if (tryConsume(OnjTokenType.R_BRACE)) break
 
-            if (tryConsume(OnjTokenType.DOT)) TODO()
+            if (tryConsume(OnjTokenType.DOT)) {
+                consume(OnjTokenType.DOT)
+                consume(OnjTokenType.DOT)
+
+                val token = peek()
+                val toInclude = parseLiteral()
+
+                if (!toInclude.isOnjObject()) throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Value included using the triple-dot must be of type Object, found ${toInclude::class.simpleName}",
+                    fileName
+                )
+
+                for ((key, value) in (toInclude as OnjObject).value) {
+                    if (keys.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                        token.char, code,
+                        "key '$key' included using the triple-dot is already defined in the object",
+                        fileName
+                    )
+                    keys[key] = value
+                }
+                if (!tryConsume(OnjTokenType.COMMA)) {
+                    consume(OnjTokenType.R_BRACKET)
+                    break
+                }
+                continue
+            }
 
             consume(OnjTokenType.IDENTIFIER, OnjTokenType.STRING)
             val keyToken = last()
@@ -205,7 +305,24 @@ class OnjParser private constructor(
 
             if (tryConsume(OnjTokenType.R_BRACKET)) break
 
-            if (tryConsume(OnjTokenType.DOT)) TODO()
+            if (tryConsume(OnjTokenType.DOT)) {
+                consume(OnjTokenType.DOT)
+                consume(OnjTokenType.DOT)
+                val token = peek()
+                val toInclude = parseLiteral()
+                if (!toInclude.isOnjArray()) throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Value included using the triple-dot must be of type array, found ${toInclude::class.simpleName}",
+                    fileName
+                )
+                for (value in (toInclude as OnjArray).value) values.add(value)
+
+                if (!tryConsume(OnjTokenType.COMMA)) {
+                    consume(OnjTokenType.R_BRACKET)
+                    break
+                }
+                continue
+            }
 
             values.add(parseValue())
 
@@ -225,8 +342,37 @@ class OnjParser private constructor(
         )
     }
 
-    private fun parseFunctionCall(name: OnjToken): OnjValue {
-        TODO()
+    private fun parseFunctionCall(nameToken: OnjToken): OnjValue {
+        val name = nameToken.literal as String
+        val params = mutableListOf<OnjValue>()
+        while (true) {
+            if (tryConsume(OnjTokenType.R_PAREN)) break
+            params.add(parseValue())
+            if (!tryConsume(OnjTokenType.COMMA)) {
+                consume(OnjTokenType.R_PAREN)
+                break
+            }
+        }
+
+        val function = OnjConfig.getFunction(name, params)
+
+        if (function == null) {
+
+            val paramsString = params.joinToString(
+                separator = ", ",
+                prefix = "(",
+                postfix = ")",
+                transform = { it::class.simpleName ?: "" }
+            )
+
+            throw OnjParserException.fromErrorMessage(
+                nameToken.char, code,
+                "no function $name$paramsString",
+                fileName
+            )
+        }
+
+        return function(params, nameToken, code, fileName)
     }
 
 
@@ -247,6 +393,8 @@ class OnjParser private constructor(
     }
 
     private fun last(): OnjToken = tokens[next - 1]
+
+    private fun peek(): OnjToken = tokens[next]
 
     private fun consume(type: OnjTokenType): OnjToken {
         val token = consume()

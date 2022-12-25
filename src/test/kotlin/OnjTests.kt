@@ -8,9 +8,10 @@ import onj.parser.OnjSchemaParser
 object OnjTests : Test() {
 
     @JvmStatic
-    fun main(args: Array<String>){
+    fun main(args: Array<String>) {
+//        OnjSchemaParser.parse("!test = int[*] test2: [ ...!test ]")
         run()
-//        testUnterminatedString()
+//        testCalculations()
     }
 
     @TestCase
