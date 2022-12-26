@@ -2,7 +2,6 @@ import onj.*
 import onj.parser.OnjParser
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
-import onj.customization.OnjConfig.RegisterOnjFunction
 import onj.schema.OnjSchema
 import onj.schema.OnjSchemaException
 import onj.value.*
@@ -11,8 +10,11 @@ object OnjTests : Test() {
 
     @JvmStatic
     fun main(args: Array<String>) {
+//        println(onjFile("toDel"))
 //        OnjSchemaParser.parse("!test = int[*] test2: [ ...!test ]")
 //        OnjSchemaParser.parse("test: [string]")
+//        OnjSchemaParser.parse("test: float[2]")
+//        OnjParser.parse("key: 2.0 pow 10.0") //TODO: looks like i will have to rewrite OnjTokenizer as well
         run()
 //        testImportLoops()
     }
@@ -102,12 +104,6 @@ object OnjTests : Test() {
         val obj = invalidOnjFile(name)
         onjSchemaFile(name).assertMatches(obj)
         return obj
-    }
-
-    @RegisterOnjFunction(schema = "[ int, string ]")
-    fun myCoolOnjFunction(int: OnjInt, string: OnjString): OnjValue {
-        repeat(int.value.toInt()) { println(string.value) }
-        return OnjNull()
     }
 
 }
