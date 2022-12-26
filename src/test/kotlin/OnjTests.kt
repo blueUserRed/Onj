@@ -12,7 +12,7 @@ object OnjTests : Test() {
     fun main(args: Array<String>) {
 //        OnjSchemaParser.parse("!test = int[*] test2: [ ...!test ]")
         run()
-//        testCalculations()
+//        testImportLoops()
     }
 
     @TestCase
@@ -73,6 +73,17 @@ object OnjTests : Test() {
     @TestCase
     fun testUnterminatedBlockComment() {
         onjFile("unterminatedBlockComment")
+    }
+
+    @TestCase
+    fun testImports() {
+        onjFile("imports")
+    }
+
+    @TestCase
+    fun testImportLoops() {
+        expect<OnjParserException>()
+        onjFile("importLoop")
     }
 
     private fun onjFile(name: String): OnjObject = OnjParser.parseFile("src/test/res/files/$name.onj")

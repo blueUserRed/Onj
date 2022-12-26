@@ -1,0 +1,7 @@
+
+var colorFile = "toImport/colors.onj";
+
+import ({ a: colorFile }.a) as colors;
+
+myColor: colors.red,
+mySecondColor: colors.blue,

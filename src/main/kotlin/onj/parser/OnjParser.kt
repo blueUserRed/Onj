@@ -4,12 +4,15 @@ import onj.*
 import onj.OnjToken
 import onj.OnjTokenizer
 import java.io.File
+import java.io.IOException
 import java.nio.file.Paths
 
 class OnjParser private constructor(
     private val tokens: List<OnjToken>,
     private val code: String,
-    private val fileName: String
+    private val fileName: String,
+    private val file: File?,
+    private val disallowedImports: List<File>
 ) {
 
     private var next = 0
@@ -62,7 +65,68 @@ class OnjParser private constructor(
     }
 
     private fun parseImport() {
-        TODO()
+        val importPathToken = peek()
+        val importPathValue = parseLiteral()
+        if (!importPathValue.isString()) throw OnjParserException.fromErrorMessage(
+            importPathToken.char, code,
+            "Expected a string, found ${importPathToken::class.simpleName}",
+            fileName
+        )
+        val importPath = importPathValue.value as String
+
+        val toImport = doOnjFileImport(importPath, importPathToken)
+
+//        if (peek().type == OnjTokenType.IDENTIFIER && peek().literal as String == "with") {
+//            consume()
+//            val schemaPathValue = parseLiteral()
+//        }
+        consume(OnjTokenType.IDENTIFIER)
+        if ((last().literal as String).lowercase() != "as") throw OnjParserException.fromErrorToken(
+            last(), "as", code, fileName
+        )
+        val varNameToken = consume(OnjTokenType.IDENTIFIER)
+        val varName = varNameToken.literal as String
+
+        consume(OnjTokenType.SEMICOLON)
+
+        if (varName == "_") return
+
+        if (variables.containsKey(varName)) throw OnjParserException.fromErrorMessage(
+            varNameToken.char, code, "Variable $varName was already defined!", fileName
+        )
+        variables[varName] = toImport
+    }
+
+    private fun doOnjFileImport(
+        importPath: String,
+        importPathToken: OnjToken
+    ): OnjObject {
+        val fileToImport = file?.let {
+            file.parentFile.toPath().resolve(importPath).toFile()
+        } ?: Paths.get(importPath).toFile()
+
+        if (fileToImport.canonicalFile in disallowedImports) throw OnjParserException.fromErrorMessage(
+            importPathToken.char, code,
+            "Import loop detected: file '$importPath' imported here is currently importing this file",
+            fileName
+        )
+
+        val codeToImport = try {
+            fileToImport.readText(Charsets.UTF_8)
+        } catch (e: IOException) {
+            throw OnjParserException.fromErrorMessage(
+                importPathToken.char, code, "Couldn't read file '$importPath'", fileName
+            )
+        }
+        val tokensToImport = OnjTokenizer().tokenize(codeToImport, importPath)
+        val parser = OnjParser(
+            tokensToImport,
+            codeToImport,
+            importPath,
+            fileToImport,
+            file?.let { disallowedImports + file.canonicalFile } ?: disallowedImports
+        )
+        return parser.parseTopLevel()
     }
 
     private fun parseKeyValuePair(): Pair<String, OnjValue> {
@@ -449,14 +513,14 @@ class OnjParser private constructor(
         fun parseFile(file: File): OnjObject {
             val code = file.readText(Charsets.UTF_8)
             val tokens = OnjTokenizer().tokenize(code, file.name)
-            return OnjParser(tokens, code, file.name).parseTopLevel()
+            return OnjParser(tokens, code, file.name, file, listOf()).parseTopLevel()
         }
 
         fun parseFile(path: String): OnjObject = parseFile(Paths.get(path).toFile())
 
         fun parse(code: String): OnjObject {
             val tokens = OnjTokenizer().tokenize(code, "anonymous")
-            return OnjParser(tokens, code, "anonymous").parseTopLevel()
+            return OnjParser(tokens, code, "anonymous", null, listOf()).parseTopLevel()
         }
 
     }
