@@ -1,8 +1,7 @@
 package onj.parser
 
-import onj.*
-import onj.OnjToken
-import onj.OnjTokenizer
+import onj.customization.OnjConfig
+import onj.value.*
 import java.io.File
 import java.io.IOException
 import java.nio.file.Paths
@@ -76,7 +75,7 @@ class OnjParser private constructor(
 
         val toImport = doOnjFileImport(importPath, importPathToken)
 
-//        if (peek().type == OnjTokenType.IDENTIFIER && peek().literal as String == "with") {
+//        if (peek().type == onj.builder.OnjTokenType.IDENTIFIER && peek().literal as String == "with") {
 //            consume()
 //            val schemaPathValue = parseLiteral()
 //        }

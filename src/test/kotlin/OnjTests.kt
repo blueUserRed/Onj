@@ -2,7 +2,10 @@ import onj.*
 import onj.parser.OnjParser
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
-import onj.OnjConfig.RegisterOnjFunction
+import onj.customization.OnjConfig.RegisterOnjFunction
+import onj.schema.OnjSchema
+import onj.schema.OnjSchemaException
+import onj.value.*
 
 object OnjTests : Test() {
 

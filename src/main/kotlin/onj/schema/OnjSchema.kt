@@ -1,5 +1,6 @@
-package onj
+package onj.schema
 
+import onj.value.*
 import java.lang.RuntimeException
 import kotlin.reflect.KClass
 
@@ -49,7 +50,11 @@ class OnjSchemaBoolean(nullable: Boolean) : OnjSchema(nullable) {
             if (nullable) return
             throw OnjSchemaException.fromNonNullable(parentName, "boolean")
         }
-        if (!onjValue.isBoolean()) throw OnjSchemaException.fromTypeError(parentName, "boolean", getActualType(onjValue))
+        if (!onjValue.isBoolean()) throw OnjSchemaException.fromTypeError(
+            parentName,
+            "boolean",
+            getActualType(onjValue)
+        )
     }
 
     override fun getAsNullable(): OnjSchema {
@@ -67,7 +72,11 @@ class OnjSchemaInt(nullable: Boolean) : OnjSchema(nullable) {
             if (nullable) return
             throw OnjSchemaException.fromNonNullable(parentName, "int")
         }
-        if (!onjValue.isInt())  throw OnjSchemaException.fromTypeError(parentName, "int", getActualType(onjValue))
+        if (!onjValue.isInt()) throw OnjSchemaException.fromTypeError(
+            parentName,
+            "int",
+            getActualType(onjValue)
+        )
     }
 
     override fun getAsNullable(): OnjSchema {
@@ -85,7 +94,11 @@ class OnjSchemaFloat(nullable: Boolean) : OnjSchema(nullable) {
             if (nullable) return
             throw OnjSchemaException.fromNonNullable(parentName, "float")
         }
-        if (!onjValue.isFloat())  throw OnjSchemaException.fromTypeError(parentName, "float", getActualType(onjValue))
+        if (!onjValue.isFloat())  throw OnjSchemaException.fromTypeError(
+            parentName,
+            "float",
+            getActualType(onjValue)
+        )
     }
 
     override fun getAsNullable(): OnjSchema {
@@ -103,7 +116,11 @@ class OnjSchemaString(nullable: Boolean) : OnjSchema(nullable) {
             if (nullable) return
             throw OnjSchemaException.fromNonNullable(parentName, "string")
         }
-        if (!onjValue.isString()) throw OnjSchemaException.fromTypeError(parentName, "string", getActualType(onjValue))
+        if (!onjValue.isString()) throw OnjSchemaException.fromTypeError(
+            parentName,
+            "string",
+            getActualType(onjValue)
+        )
     }
 
     override fun getAsNullable(): OnjSchema {
@@ -131,10 +148,16 @@ class OnjSchemaObject internal constructor(
             throw OnjSchemaException.fromNonNullable(parentName, "object")
         }
 
-        if (onjValue !is OnjObject) throw OnjSchemaException.fromTypeError(parentName, "object", getActualType(onjValue))
+        if (onjValue !is OnjObject) throw OnjSchemaException.fromTypeError(
+            parentName,
+            "object",
+            getActualType(onjValue)
+        )
 
         for ((key, value) in keys) {
-            val part = onjValue[key] ?: throw OnjSchemaException.fromMissingKey("$parentName->$key")
+            val part = onjValue[key] ?: throw OnjSchemaException.fromMissingKey(
+                "$parentName->$key"
+            )
             value.match(part, "$parentName->$key")
         }
         for ((key, value) in optionalKeys) {
@@ -188,11 +211,19 @@ class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable
         }
 
         if (onjValue !is OnjArray)
-            throw OnjSchemaException.fromTypeError(parentName, "array", getActualType(onjValue))
+            throw OnjSchemaException.fromTypeError(
+                parentName,
+                "array",
+                getActualType(onjValue)
+            )
 
         if (_schemas != null) {
             if (_schemas!!.size != onjValue.value.size)
-                throw OnjSchemaException.fromWrongSize(parentName, _schemas!!.size, onjValue.value.size)
+                throw OnjSchemaException.fromWrongSize(
+                    parentName,
+                    _schemas!!.size,
+                    onjValue.value.size
+                )
             for (i in onjValue.value.indices) {
                 _schemas!![i].match(onjValue.value[i], "$parentName[$i]")
             }
@@ -200,7 +231,11 @@ class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable
         }
 
         if (size != -1 && onjValue.value.size != size)
-            throw OnjSchemaException.fromWrongSize(parentName, size!!, onjValue.value.size)
+            throw OnjSchemaException.fromWrongSize(
+                parentName,
+                size!!,
+                onjValue.value.size
+            )
         for (i in onjValue.value.indices)
             type!!.match(onjValue.value[i], "$parentName[$i]")
     }
@@ -240,11 +275,19 @@ class OnjSchemaNamedObjectGroup internal constructor(
         }
 
         if (onjValue !is OnjNamedObject) {
-            throw OnjSchemaException.fromTypeError(parentName, "named object", getActualType(onjValue))
+            throw OnjSchemaException.fromTypeError(
+                parentName,
+                "named object",
+                getActualType(onjValue)
+            )
         }
 
         val obj = namedObjects[name]?.filter { it.name == onjValue.name }?.getOrNull(0)?.obj ?: run {
-            throw OnjSchemaException.fromUnknownObjectName(parentName, onjValue.name, name)
+            throw OnjSchemaException.fromUnknownObjectName(
+                parentName,
+                onjValue.name,
+                name
+            )
         }
 
         obj.match(onjValue, parentName)
@@ -264,10 +307,17 @@ class OnjSchemaCustomDataType internal constructor(
     override fun match(onjValue: OnjValue, parentName: String) {
         if (onjValue.isNull()) {
             if (nullable) return
-            throw OnjSchemaException.fromNonNullable(parentName, "custom($name)")
+            throw OnjSchemaException.fromNonNullable(
+                parentName,
+                "custom($name)"
+            )
         }
         if (!type.isInstance(onjValue)) {
-            throw OnjSchemaException.fromTypeError(parentName, "custom($name)", getActualType(onjValue))
+            throw OnjSchemaException.fromTypeError(
+                parentName,
+                "custom($name)",
+                getActualType(onjValue)
+            )
         }
     }
 
@@ -293,7 +343,8 @@ private fun getActualType(value: OnjValue): String {
 
 internal class OnjSchemaNamedObject(val name: String, val obj: OnjSchemaObject)
 
-fun List<OnjSchema>.toSchemaArray(): OnjSchemaArray = OnjSchemaArray(false, this)
+fun List<OnjSchema>.toSchemaArray(): OnjSchemaArray =
+    OnjSchemaArray(false, this)
 
 class OnjSchemaException(message: String) : RuntimeException(message) {
 
@@ -312,8 +363,10 @@ class OnjSchemaException(message: String) : RuntimeException(message) {
         }
 
         fun fromWrongSize(key: String, expected: Int, actual: Int): OnjSchemaException {
-            return OnjSchemaException("\u001B[37m\n\n'$key' has length '$actual'," +
-                    " but length '$expected' was expected.\u001B[0m\n")
+            return OnjSchemaException(
+                "\u001B[37m\n\n'$key' has length '$actual'," +
+                        " but length '$expected' was expected.\u001B[0m\n"
+            )
         }
 
         fun fromUnknownKey(key: String): OnjSchemaException {

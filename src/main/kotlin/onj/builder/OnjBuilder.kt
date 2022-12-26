@@ -1,4 +1,6 @@
-package onj
+package onj.builder
+
+import onj.value.*
 
 class OnjObjectBuilderDSL internal constructor() {
 

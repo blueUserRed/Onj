@@ -1,4 +1,4 @@
-package onj
+package onj.value
 
 import kotlin.reflect.KClass
 

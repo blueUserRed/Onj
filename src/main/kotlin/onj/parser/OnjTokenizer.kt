@@ -1,6 +1,5 @@
-package onj
+package onj.parser
 
-import onj.parser.OnjParserException
 import kotlin.math.pow
 
 internal class OnjTokenizer {
@@ -129,7 +128,7 @@ internal class OnjTokenizer {
             "POS_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.POSITIVE_INFINITY, start)
             "NEG_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.NEGATIVE_INFINITY, start)
             "NAN" -> OnjToken(OnjTokenType.FLOAT, Double.NaN, start)
-//            "EXPORT" -> OnjToken(OnjTokenType.EXPORT, identifier, start)
+//            "EXPORT" -> onj.builder.OnjToken(onj.builder.OnjTokenType.EXPORT, identifier, start)
             "IMPORT" -> OnjToken(OnjTokenType.IMPORT, identifier, start)
             "VAR" -> OnjToken(OnjTokenType.VAR, identifier, start)
             else -> OnjToken(OnjTokenType.IDENTIFIER, identifier, start)

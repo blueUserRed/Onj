@@ -1,9 +1,9 @@
 package onj.parser
 
 import onj.*
-import onj.OnjSchemaNamedObject
-import onj.OnjToken
-import onj.OnjTokenizer
+import onj.customization.OnjConfig
+import onj.schema.*
+import onj.schema.OnjSchemaNamedObject
 import java.io.File
 import java.io.IOException
 import java.nio.file.Path
@@ -465,7 +465,11 @@ class OnjSchemaParser private constructor(val previousFiles: List<Path> = listOf
         consume(OnjTokenType.IDENTIFIER)
         val nameToken = last()
         namedObjectGroupsToCheck.add(nameToken)
-        return OnjSchemaNamedObjectGroup(nameToken.literal as String, tryConsume(OnjTokenType.QUESTION), namedObjects)
+        return OnjSchemaNamedObjectGroup(
+            nameToken.literal as String,
+            tryConsume(OnjTokenType.QUESTION),
+            namedObjects
+        )
     }
 
     private fun parseSchemaVariable(): OnjSchema {
@@ -493,7 +497,11 @@ class OnjSchemaParser private constructor(val previousFiles: List<Path> = listOf
 
             consume(OnjTokenType.R_BRACKET)
 
-            schema = if (tryConsume(OnjTokenType.QUESTION)) OnjSchemaArray(true, amount, schema)
+            schema = if (tryConsume(OnjTokenType.QUESTION)) OnjSchemaArray(
+                true,
+                amount,
+                schema
+            )
             else OnjSchemaArray(false, amount, schema)
 
         }

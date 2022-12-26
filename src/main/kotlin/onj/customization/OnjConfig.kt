@@ -1,7 +1,9 @@
-package onj
+package onj.customization
 
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
+import onj.schema.*
+import onj.value.*
 import kotlin.math.pow
 import kotlin.math.sqrt
 import kotlin.reflect.KClass
@@ -67,29 +69,29 @@ object OnjConfig {
 
     fun addGlobalFunction(function: OnjFunction): Unit = run { functions.add(function) }
 
-    fun registerGlobalFunctions(obj: Any) {
-        val clazz = obj::class
-        for (function in clazz.functions) {
-            val annotation = function.annotations.find { it is RegisterOnjFunction } ?: continue
-            annotation as RegisterOnjFunction
-            assertThatFunctionCanBeRegistered(obj, function)
-            val schemaObj = try {
-                OnjSchemaParser.parse("params: ${annotation.schema}")
-            } catch (e: OnjParserException) {
-                throw RuntimeException("schema supplied by function ${function.name} has a syntax error", e)
-            }
-            schemaObj as OnjSchemaObject
-            val schema = schemaObj.keys["params"]
-            if (schema !is OnjSchemaArray) throw RuntimeException(
-                "schema must be an array!"
-            )
-            val onjFunction = OnjFunction(
-                function.name,
-                schema
-            ) { function.call(obj, *it) as OnjValue }
-            addGlobalFunction(onjFunction)
-        }
-    }
+//    fun registerGlobalFunctions(obj: Any) {
+//        val clazz = obj::class
+//        for (function in clazz.functions) {
+//            val annotation = function.annotations.find { it is RegisterOnjFunction } ?: continue
+//            annotation as RegisterOnjFunction
+//            assertThatFunctionCanBeRegistered(obj, function)
+//            val schemaObj = try {
+//                OnjSchemaParser.parse("params: ${annotation.schema}")
+//            } catch (e: OnjParserException) {
+//                throw RuntimeException("schema supplied by function ${function.name} has a syntax error", e)
+//            }
+//            schemaObj as OnjSchemaObject
+//            val schema = schemaObj.keys["params"]
+//            if (schema !is OnjSchemaArray) throw RuntimeException(
+//                "schema must be an array!"
+//            )
+//            val onjFunction = OnjFunction(
+//                function.name,
+//                schema
+//            ) { function.call(obj, *it) as OnjValue }
+//            addGlobalFunction(onjFunction)
+//        }
+//    }
 
     private fun assertThatFunctionCanBeRegistered(obj: Any, function: KFunction<*>) {
         val onjValueType = OnjValue::class.createType()

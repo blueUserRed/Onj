@@ -1,9 +1,5 @@
 package onj.parser
 
-import onj.OnjToken
-import onj.OnjTokenType
-
-
 class OnjParserException internal constructor(message: String, cause: Exception?) : RuntimeException(message, cause) {
 
     internal constructor(message: String) : this(message, null)
