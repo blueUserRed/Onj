@@ -1,16 +1,15 @@
-import onj.OnjObject
-import onj.OnjSchema
-import onj.OnjSchemaException
-import onj.OnjString
+import onj.*
 import onj.parser.OnjParser
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
+import onj.OnjConfig.RegisterOnjFunction
 
 object OnjTests : Test() {
 
     @JvmStatic
     fun main(args: Array<String>) {
 //        OnjSchemaParser.parse("!test = int[*] test2: [ ...!test ]")
+//        OnjSchemaParser.parse("test: [string]")
         run()
 //        testImportLoops()
     }
@@ -100,6 +99,12 @@ object OnjTests : Test() {
         val obj = invalidOnjFile(name)
         onjSchemaFile(name).assertMatches(obj)
         return obj
+    }
+
+    @RegisterOnjFunction(schema = "[ int, string ]")
+    fun myCoolOnjFunction(int: OnjInt, string: OnjString): OnjValue {
+        repeat(int.value.toInt()) { println(string.value) }
+        return OnjNull()
     }
 
 }

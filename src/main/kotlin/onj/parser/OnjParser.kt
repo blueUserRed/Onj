@@ -156,7 +156,7 @@ class OnjParser private constructor(
             val nameToken = last()
             val name = nameToken.literal as String
             val right = parseTerm()
-            val functionArgs = listOf(left, right)
+            val functionArgs = arrayOf(left, right)
             val function = OnjConfig.getInfixFunction(name, functionArgs)
 
             if (function == null) {
@@ -186,7 +186,7 @@ class OnjParser private constructor(
             val operator = last()
             val operatorName = operator.type.toString().lowercase()
             val right = parseFactor()
-            val functionArgs = listOf(left, right)
+            val functionArgs = arrayOf(left, right)
             val function = OnjConfig.getFunction("operator%$operatorName", functionArgs)
                 ?: throw OnjParserException.fromErrorMessage(
                     operator.char, code,
@@ -204,7 +204,7 @@ class OnjParser private constructor(
             val operator = last()
             val operatorName = operator.type.toString().lowercase()
             val right = parseTypeConversion()
-            val functionArgs = listOf(left, right)
+            val functionArgs = arrayOf(left, right)
             val function = OnjConfig.getFunction("operator%$operatorName", functionArgs)
                 ?: throw OnjParserException.fromErrorMessage(
                     operator.char, code,
@@ -222,7 +222,7 @@ class OnjParser private constructor(
             val convertToToken = consume(OnjTokenType.IDENTIFIER)
             val convertTo = convertToToken.literal as String
 
-            val functionArgs = listOf(left)
+            val functionArgs = arrayOf(left)
             val function = OnjConfig.getFunction("convert%$convertTo", functionArgs)
                 ?: throw OnjParserException.fromErrorMessage(
                     convertToToken.char, code,
@@ -241,7 +241,7 @@ class OnjParser private constructor(
 
         val right = parseNegation()
 
-        val functionArgs = listOf(right)
+        val functionArgs = arrayOf(right)
         val function = OnjConfig.getFunction("operator%unaryMinus", functionArgs)
             ?: throw OnjParserException.fromErrorMessage(
                 operator.char, code,
@@ -434,21 +434,22 @@ class OnjParser private constructor(
 
     private fun parseFunctionCall(nameToken: OnjToken): OnjValue {
         val name = nameToken.literal as String
-        val params = mutableListOf<OnjValue>()
+        val paramsList = mutableListOf<OnjValue>()
         while (true) {
             if (tryConsume(OnjTokenType.R_PAREN)) break
-            params.add(parseValue())
+            paramsList.add(parseValue())
             if (!tryConsume(OnjTokenType.COMMA)) {
                 consume(OnjTokenType.R_PAREN)
                 break
             }
         }
+        val params = paramsList.toTypedArray()
 
         val function = OnjConfig.getFunction(name, params)
 
         if (function == null) {
 
-            val paramsString = params.joinToString(
+            val paramsString = paramsList.joinToString(
                 separator = ", ",
                 prefix = "(",
                 postfix = ")",

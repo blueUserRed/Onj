@@ -6,7 +6,7 @@ data class OnjFunction(
     val name: String,
     val paramsSchema: OnjSchemaArray,
     val canBeUsedAsInfix: Boolean = false,
-    private val function: (List<OnjValue>) -> OnjValue
+    private val function: (Array<OnjValue>) -> OnjValue
 ) {
 
 //    init {
@@ -14,7 +14,7 @@ data class OnjFunction(
 //    }
 
     internal operator fun invoke(
-        params: List<OnjValue>,
+        params: Array<OnjValue>,
         functionCallToken: OnjToken,
         code: String,
         fileName: String
