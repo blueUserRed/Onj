@@ -1,6 +1,7 @@
 import onj.OnjObject
 import onj.OnjSchema
 import onj.OnjSchemaException
+import onj.OnjString
 import onj.parser.OnjParser
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
@@ -39,6 +40,8 @@ object OnjTests : Test() {
         assertEquals(obj.get<Long>("is10"), 10L)
         assertEquals(obj.get<String>("string10"), "10")
         assertEquals(obj.get<String>("string8"), "8")
+        assertEquals(obj.get<Boolean>("containsTest"), false)
+        assertEquals(obj.get<Boolean>("contains4"), true)
     }
 
     @TestCase

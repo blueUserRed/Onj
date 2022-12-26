@@ -168,7 +168,7 @@ class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable
     val schemas: List<OnjSchema>
         get() {
             if (_schemas != null) return _schemas!!
-            return List(size!!) { type!! }
+            return List(size!!) { type!! } //TODO: this is really stupid
         }
 
     internal constructor(nullable: Boolean, schema: List<OnjSchema>) : this(nullable) {

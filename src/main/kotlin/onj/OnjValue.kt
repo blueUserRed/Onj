@@ -20,6 +20,13 @@ abstract class OnjValue {
     fun isBoolean(): Boolean = this is OnjBoolean
     fun isOnjObject(): Boolean = this is OnjObject
 
+
+    override fun equals(other: Any?): Boolean {
+        return other != null && other::class == this::class && (other as OnjValue).value == this.value
+    }
+
+    override fun hashCode(): Int = value.hashCode()
+
     /**
      * converts the structure to a valid onj string. (variables, comments, etc. are lost)
      */

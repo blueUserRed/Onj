@@ -86,8 +86,34 @@ class OnjParser private constructor(
     private fun parseValue(): OnjValue = parseInfixFunctionCall()
 
     private fun parseInfixFunctionCall(): OnjValue {
-        //TODO
-        return parseTerm()
+        var left = parseTerm()
+
+        while (tryConsume(OnjTokenType.IDENTIFIER)) {
+            val nameToken = last()
+            val name = nameToken.literal as String
+            val right = parseTerm()
+            val functionArgs = listOf(left, right)
+            val function = OnjConfig.getInfixFunction(name, functionArgs)
+
+            if (function == null) {
+                val argsString = functionArgs.joinToString(
+                    separator = ", ",
+                    prefix = "(",
+                    postfix = ")",
+                    transform = { it::class.simpleName ?: "" }
+                )
+                throw OnjParserException.fromErrorMessage(
+                    nameToken.char, code,
+                    "Cannot find infix function $name$argsString",
+                    fileName
+                )
+            }
+
+            left = function(functionArgs, nameToken, code, fileName)
+
+        }
+
+        return left
     }
 
     private fun parseTerm(): OnjValue {

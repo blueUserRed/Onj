@@ -5,8 +5,13 @@ import onj.parser.OnjParserException
 data class OnjFunction(
     val name: String,
     val paramsSchema: OnjSchemaArray,
+    val canBeUsedAsInfix: Boolean = false,
     private val function: (List<OnjValue>) -> OnjValue
 ) {
+
+//    init {
+//        if (canBeUsedAsInfix && paramsSchema.)
+//    }
 
     internal operator fun invoke(
         params: List<OnjValue>,
