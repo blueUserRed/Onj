@@ -1,10 +1,10 @@
 
-anInt: int
-anInt2: int
-aFloat: float
-is10: int
-string10: string
-aFloat2: float
-string8: string
-containsTest: boolean
-contains4: boolean
+anInt: int,
+anInt2: int,
+aFloat: float,
+is10: int,
+string10: string,
+aFloat2: float,
+string8: string,
+containsTest: boolean,
+contains4: boolean,

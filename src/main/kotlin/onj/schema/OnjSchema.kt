@@ -13,7 +13,7 @@ abstract class OnjSchema internal constructor(_nullable: Boolean) {
      * true if this part of the schema is nullable
      */
     var nullable: Boolean = _nullable
-        internal set
+        private set
 
     /**
      * asserts that an onj-structure matches an onj-schema
@@ -179,74 +179,57 @@ class OnjSchemaObject internal constructor(
 /**
  * the schema of an array
  */
-class OnjSchemaArray private constructor(nullable: Boolean) : OnjSchema(nullable) {
+abstract class OnjSchemaArray(nullable: Boolean) : OnjSchema(nullable)
 
-    private var _schemas: List<OnjSchema>? = null
-    private var size: Int? = null
-    private var type: OnjSchema? = null
-
-    /**
-     * the list of schemas in the array
-     */
-    val schemas: List<OnjSchema>
-        get() {
-            if (_schemas != null) return _schemas!!
-            return List(size!!) { type!! } //TODO: this is really stupid
-        }
-
-    internal constructor(nullable: Boolean, schema: List<OnjSchema>) : this(nullable) {
-        this._schemas = schema
-    }
-
-    internal constructor(nullable: Boolean, size: Int, type: OnjSchema) : this(nullable) {
-        this.size = size
-        this.type = type
-    }
+class TypeBasedOnjSchemaArray(
+    private val type: OnjSchema,
+    private val size: Int?,
+    nullable: Boolean
+) : OnjSchemaArray(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
-
-        if (onjValue.isNull()) {
-            if (nullable) return
-            throw OnjSchemaException.fromNonNullable(parentName, "array")
+        if (!onjValue.isOnjArray()) throw OnjSchemaException.fromTypeError(
+            parentName,
+            "array",
+            getActualType(onjValue)
+        )
+        val values = (onjValue as OnjArray).value
+        if (size != null && values.size != size) throw OnjSchemaException.fromWrongSize(
+            parentName,
+            size,
+            onjValue.value.size
+        )
+        for (i in values.indices) {
+            type.match(values[i], "$parentName[$i]")
         }
-
-        if (onjValue !is OnjArray)
-            throw OnjSchemaException.fromTypeError(
-                parentName,
-                "array",
-                getActualType(onjValue)
-            )
-
-        if (_schemas != null) {
-            if (_schemas!!.size != onjValue.value.size)
-                throw OnjSchemaException.fromWrongSize(
-                    parentName,
-                    _schemas!!.size,
-                    onjValue.value.size
-                )
-            for (i in onjValue.value.indices) {
-                _schemas!![i].match(onjValue.value[i], "$parentName[$i]")
-            }
-            return
-        }
-
-        if (size != -1 && onjValue.value.size != size)
-            throw OnjSchemaException.fromWrongSize(
-                parentName,
-                size!!,
-                onjValue.value.size
-            )
-        for (i in onjValue.value.indices)
-            type!!.match(onjValue.value[i], "$parentName[$i]")
     }
 
-    override fun getAsNullable(): OnjSchema {
-        val arr = OnjSchemaArray(true)
-        arr._schemas = this._schemas
-        arr.size = this.size
-        arr.type = this.type
-        return arr
+    override fun getAsNullable(): OnjSchema = TypeBasedOnjSchemaArray(type, size, true)
+}
+
+class LiteralOnjSchemaArray(
+    val schemas: List<OnjSchema>,
+    nullable: Boolean
+) : OnjSchemaArray(nullable) {
+
+    override fun match(onjValue: OnjValue, parentName: String) {
+        if (!onjValue.isOnjArray()) throw OnjSchemaException.fromTypeError(
+            parentName,
+            "array",
+            getActualType(onjValue)
+        )
+        onjValue as OnjArray
+        if (schemas.size != onjValue.value.size) throw OnjSchemaException.fromWrongSize(
+            parentName,
+            schemas.size,
+            onjValue.value.size
+        )
+        for (i in schemas.indices) {
+            schemas[i].match(onjValue.value[i], "$parentName[$i]")
+        }
     }
+
+    override fun getAsNullable(): OnjSchema = LiteralOnjSchemaArray(schemas, nullable)
 }
 
 /**
@@ -343,8 +326,7 @@ private fun getActualType(value: OnjValue): String {
 
 internal class OnjSchemaNamedObject(val name: String, val obj: OnjSchemaObject)
 
-fun List<OnjSchema>.toSchemaArray(): OnjSchemaArray =
-    OnjSchemaArray(false, this)
+fun List<OnjSchema>.toSchemaArray(): OnjSchemaArray = LiteralOnjSchemaArray(this, false)
 
 class OnjSchemaException(message: String) : RuntimeException(message) {
 

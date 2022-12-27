@@ -1,564 +1,358 @@
 package onj.parser
 
-import onj.*
-import onj.customization.OnjConfig
 import onj.schema.*
-import onj.schema.OnjSchemaNamedObject
+import onj.value.OnjArray
+import onj.value.OnjObject
+import onj.value.OnjValue
 import java.io.File
 import java.io.IOException
-import java.nio.file.Path
 import java.nio.file.Paths
 
+class OnjSchemaParser internal constructor(
+    private val tokens: List<OnjToken>,
+    private val code: String,
+    private val fileName: String,
+    private val file: File?,
+    private val disallowedImports: List<File>
+) {
 
-/**
- * used for parsing a .onjschema file
- * //TODO: give this the same treatment as [OnjParser]
- */
-class OnjSchemaParser private constructor(val previousFiles: List<Path> = listOf()) {
-
-    private var next: Int = 0
-    private var tokens: List<OnjToken> = listOf()
-    private var code: String = ""
-    private var filename: String = ""
-
+    private var next = 0
     private val variables: MutableMap<String, OnjSchema> = mutableMapOf()
-    private var namedObjects: MutableMap<String, List<OnjSchemaNamedObject>> = mutableMapOf()
-    private val namedObjectGroupsToCheck: MutableList<OnjToken> = mutableListOf()
-    private val allNamedObjectNames: MutableList<String> = mutableListOf()
 
-    private val exports: MutableList<String> = mutableListOf()
 
-    private fun parseSchema(tokens: List<OnjToken>, code: String, filename: String): OnjSchema {
-        next = 0
-        this.tokens = tokens
-        this.code = code
-        this.filename = filename
-        this.variables.clear()
+    private fun parseTopLevel(): OnjSchema {
+        val keys = mutableMapOf<String, OnjSchema>()
+        val optionalKeys = mutableMapOf<String, OnjSchema>()
 
-        parseNamedObjects()
+        var allowKeyValue = true
+        while (!end()) {
+            allowKeyValue = parseTopLevelDeclaration(keys, optionalKeys, allowKeyValue)
+        }
 
-        val onjSchema = parseTopLevel()
-
-        checkAllNamedObjectGroups()
-
-        return onjSchema
+        return OnjSchemaObject(false, keys, optionalKeys, false)
     }
 
-    private fun parseTopLevel(): OnjSchemaObject {
-        val values = mutableMapOf<String, OnjSchema>()
-        val optionalValues = mutableMapOf<String, OnjSchema>()
-        while (!tryConsume(OnjTokenType.EOF)) {
+    private fun parseVariableDeclaration() {
+        val nameToken = consume(OnjTokenType.IDENTIFIER)
+        val name = nameToken.literal as String
+        if (variables.containsKey(name)) throw OnjParserException.fromErrorMessage(
+            nameToken.char, code, "variable $name was already defined", fileName
+        )
+        consume(OnjTokenType.EQUALS)
+        variables[name] = parseValue()
+        consume(OnjTokenType.SEMICOLON)
+    }
 
-            if (tryConsume(OnjTokenType.EXCLAMATION)) parseVariableDeclaration(false)
-            else if (tryConsume(OnjTokenType.IMPORT)) parseImport()
-            else if (tryConsume(OnjTokenType.DOLLAR)) parseNamedObject()
-            else {
-                val key = if (tryConsume(OnjTokenType.IDENTIFIER)) {
-                    last().literal as String
-                } else if (tryConsume(OnjTokenType.STRING)) {
-                    last().literal as String
-                } else {
-                    throw OnjParserException.fromErrorToken(
-                        current(),
-                        "identifier or string identifier",
-                        code,
-                        filename
+    private fun parseTopLevelDeclaration(
+        keys: MutableMap<String, OnjSchema>,
+        optionalKeys: MutableMap<String, OnjSchema>,
+        allowKeyValue: Boolean
+    ): Boolean {
+        val token = consume()
+
+        when (token.type) {
+
+            OnjTokenType.VAR -> parseVariableDeclaration()
+            OnjTokenType.IMPORT -> parseImport()
+
+            OnjTokenType.IDENTIFIER, OnjTokenType.STRING -> {
+
+                if (!allowKeyValue) throw OnjParserException.fromErrorToken(
+                    last(), "end of file", code, fileName
+                )
+
+                val (key, value, optional) = parseKeyValuePair()
+                val keysToCheck = if (optional) optionalKeys else keys
+                if (keysToCheck.containsKey(key)) {
+                    throw OnjParserException.fromErrorMessage(
+                        token.char, code,
+                        "Key $key was already defined",
+                        fileName
                     )
                 }
-                val optional = tryConsume(OnjTokenType.QUESTION)
-                consume(OnjTokenType.COLON)
-                if (optional) {
-                    optionalValues[key] = parseValue()
-                } else {
-                    values[key] = parseValue()
-                }
+                keysToCheck[key] = value
+                return tryConsume(OnjTokenType.COMMA)
             }
 
+            else -> throw OnjParserException.fromErrorToken(
+                token, "top level declaration", code, fileName
+            )
+
         }
-        return OnjSchemaObject(false, values, optionalValues, false)
+        return true
     }
 
     private fun parseImport() {
-        consume(OnjTokenType.STRING)
-        val pathToken = last()
-        val path = pathToken.literal as String
+        val importPathToken = consume(OnjTokenType.STRING)
+        val importPath = importPathToken.literal as String
 
-        val normalized = Paths.get(path).normalize()
-        if (normalized in previousFiles || normalized == Paths.get(filename).normalize()) {
-            throw OnjParserException.fromErrorMessage(
-                pathToken.char,
-                code,
-                "Import loop detect: file imports itself",
-                filename
-            )
-        }
+        val toImport = doOnjSchemaFileImport(importPath, importPathToken)
 
         consume(OnjTokenType.IDENTIFIER)
-        if (last().literal as String != "as") {
-            throw OnjParserException.fromErrorToken(last(), "'as'", code, filename)
-        }
-        consume(OnjTokenType.IDENTIFIER)
+        if ((last().literal as String).lowercase() != "as") throw OnjParserException.fromErrorToken(
+            last(), "as", code, fileName
+        )
+        val varNameToken = consume(OnjTokenType.IDENTIFIER)
+        val varName = varNameToken.literal as String
 
-        val nameToken = last()
-        val name = nameToken.literal as String
+        consume(OnjTokenType.SEMICOLON)
 
-        val parser = OnjSchemaParser(previousFiles + Paths.get(filename).normalize())
+        if (varName == "_") return
 
-        val code = try {
-            File(Paths.get(path).toUri()).bufferedReader().use { it.readText() }
+        if (variables.containsKey(varName)) throw OnjParserException.fromErrorMessage(
+            varNameToken.char, code, "Variable $varName was already defined!", fileName
+        )
+        variables[varName] = toImport
+    }
+
+    private fun doOnjSchemaFileImport(
+        importPath: String,
+        importPathToken: OnjToken
+    ): OnjSchema {
+        val fileToImport = file?.let {
+            file.parentFile.toPath().resolve(importPath).toFile()
+        } ?: Paths.get(importPath).toFile()
+
+        if (fileToImport.canonicalFile in disallowedImports) throw OnjParserException.fromErrorMessage(
+            importPathToken.char, code,
+            "Import loop detected: file '$importPath' imported here is currently importing this file",
+            fileName
+        )
+
+        val codeToImport = try {
+            fileToImport.readText(Charsets.UTF_8)
         } catch (e: IOException) {
             throw OnjParserException.fromErrorMessage(
-                pathToken.char,
-                code,
-                "Couldn't open imported file '$path'",
-                filename,
-                e
+                importPathToken.char, code, "Couldn't read file '$importPath'", fileName, e
             )
         }
-
-        val result = parser.parseSchema(OnjTokenizer().tokenize(code, path), code, path)
-
-        if (name != "_") {
-            if (variables.containsKey(name)) {
-                throw OnjParserException.fromErrorMessage(
-                    nameToken.char,
-                    code,
-                    "redefinition of variable '$name'",
-                    filename
-                )
-            }
-            variables[name] = result
-        }
-
-        for ((varName, variable) in parser.variables) if (varName in parser.exports) {
-            if (variables.containsKey(varName)) {
-                throw OnjParserException.fromErrorMessage(
-                    nameToken.char,
-                    code,
-                    "Variable '$varName' is imported here, but was already defined",
-                    filename
-                )
-            }
-            variables[varName] = variable
-        }
-
-        val allNamedObjectNames = namedObjects.values.flatten().map { it.name }.toList()
-        val groupNames = namedObjects.keys.toList()
-        for ((group, objects) in parser.namedObjects) {
-            objects.forEach {
-                if (it.name in allNamedObjectNames) {
-                    throw OnjParserException.fromErrorMessage(
-                        pathToken.char,
-                        code,
-                        "Redefinition of named object ${it.name} in imported file. " +
-                                "Note: Object names need to be distinct across groups.",
-                        filename
-                    )
-                }
-            }
-            if (group in groupNames) {
-                throw OnjParserException.fromErrorMessage(
-                    pathToken.char,
-                    code,
-                    "Redefinition of named object group $group in imported file",
-                    filename
-                )
-            }
-            namedObjects[group] = objects
-        }
-    }
-
-    private fun parseVariableDeclaration(export: Boolean) {
-        val identifier = if (tryConsume(OnjTokenType.IDENTIFIER)) {
-            last().literal as String
-        } else {
-            throw OnjParserException.fromErrorToken(last(), OnjTokenType.IDENTIFIER, code, filename)
-        }
-        val identifierToken = last()
-
-        consume(OnjTokenType.EQUALS)
-
-        val value = parseValue()
-
-        if (variables.containsKey(identifier)) {
-            throw OnjParserException.fromErrorMessage(
-                identifierToken.char,
-                code,
-                "redefinition of variable '$identifier'",
-                filename
-            )
-        }
-        if (export) exports.add(identifier)
-        variables[identifier] = value
-    }
-
-    private fun parseNamedObjects() {
-        while (tryConsume(OnjTokenType.DOLLAR)) {
-            parseNamedObject()
-        }
-    }
-
-    private fun parseNamedObject() {
-        consume(OnjTokenType.IDENTIFIER)
-        val groupNameToken = last()
-        val groupName = groupNameToken.literal as String
-        if (this.namedObjects.containsKey(groupName)) {
-            throw OnjParserException.fromErrorMessage(
-                groupNameToken.char,
-                code,
-                "Group with name $groupName is already defined",
-                filename
-            )
-        }
-        val subObjects = mutableListOf<OnjSchemaNamedObject>()
-        consume(OnjTokenType.L_BRACKET)
-        while (!tryConsume(OnjTokenType.R_BRACKET)) {
-            consume(OnjTokenType.DOLLAR)
-            consume(OnjTokenType.IDENTIFIER)
-            val nameToken = last()
-            val name = nameToken.literal as String
-            if (name in allNamedObjectNames) {
-                throw OnjParserException.fromErrorMessage(
-                    nameToken.char,
-                    code,
-                    "Named Object $name is already defined. (Note: names need to be unique even" +
-                            " across different groups)",
-                    filename
-                )
-            }
-            allNamedObjectNames.add(name)
-            consume(OnjTokenType.L_BRACE)
-            val obj = parseObject(last(), false)
-            subObjects.add(OnjSchemaNamedObject(name, obj))
-        }
-        namedObjects[groupName] = subObjects
-    }
-
-    private fun checkAllNamedObjectGroups() {
-        for (nameToken in namedObjectGroupsToCheck) {
-            val name = nameToken.literal as String
-            if (!namedObjects.any { it.key == name }) {
-                throw OnjParserException.fromErrorMessage(
-                    nameToken.char,
-                    code,
-                    "No named object group with name $name",
-                    filename
-                )
-            }
-        }
-    }
-
-    private fun parseObject(startToken: OnjToken?, nullable: Boolean): OnjSchemaObject {
-
-        val keys: MutableMap<String, OnjSchema> = mutableMapOf()
-        val optionalKeys: MutableMap<String, OnjSchema> = mutableMapOf()
-        var allowsAdditional = false
-
-        while (!tryConsume(OnjTokenType.R_BRACE)) {
-
-            if (tryConsume(OnjTokenType.EOF)) {
-                throw OnjParserException.fromErrorMessage(
-                    startToken!!.char, code,
-                    "Object is opened but never closed!", filename
-                )
-            }
-
-            val key: String
-            if (tryConsume(OnjTokenType.IDENTIFIER)) key = last().literal as String
-            else if (tryConsume(OnjTokenType.STRING)) key = last().literal as String
-            else if (tryConsume(OnjTokenType.DOT)) {
-
-                val pref = next
-                if (
-                    tryConsume(OnjTokenType.DOT) &&
-                    tryConsume(OnjTokenType.DOT) &&
-                    tryConsume(OnjTokenType.STAR)
-                ) {
-                    allowsAdditional = true
-                    continue
-                }
-                next = pref
-
-                val result = doTripleDot()
-
-                if (result !is OnjSchemaObject) throw OnjParserException.fromErrorMessage(
-                    last().char, code,
-                    "Variable included via triple dot is not of type 'Object'", filename
-                )
-
-                for ((curKey, curValue) in result.keys.entries) {
-                    if (keys.containsKey(curKey)) throw OnjParserException.fromErrorMessage(
-                        last().char, code,
-                        "Key '$curKey' included via Triple-Dot is already defined.", filename
-                    )
-                    keys[curKey] = curValue
-                }
-
-                for ((curKey, curValue) in result.optionalKeys.entries) {
-                    if (keys.containsKey(curKey)) throw OnjParserException.fromErrorMessage(
-                        last().char, code,
-                        "Key '$curKey' included via Triple-Dot is already defined.", filename
-                    )
-                    optionalKeys[curKey] = curValue
-                }
-
-                continue
-
-            } else {
-                throw OnjParserException.fromErrorToken(last(), "Identifier or String-Identifier", code, filename)
-            }
-
-            if (keys.containsKey(key)) {
-                throw OnjParserException.fromErrorMessage(last().char, code, "Key '$key' is already defined", filename)
-            }
-
-            val isOptional = tryConsume(OnjTokenType.QUESTION)
-
-            consume(OnjTokenType.COLON)
-
-            if (isOptional) optionalKeys[key] = parseValue() else keys[key] = parseValue()
-
-            tryConsume(OnjTokenType.COMMA)
-
-        }
-
-        return OnjSchemaObject(nullable, keys, optionalKeys, allowsAdditional)
-    }
-
-    private fun parseArray(startToken: OnjToken, nullable: Boolean): OnjSchemaArray {
-
-        val values = mutableListOf<OnjSchema>()
-
-        while (!tryConsume(OnjTokenType.R_BRACKET)) {
-
-            if (tryConsume(OnjTokenType.EOF))
-                throw OnjParserException.fromErrorMessage(
-                    startToken.char, code,
-                    "Array is opened but never closed!", filename
-                )
-
-            if (tryConsume(OnjTokenType.DOT)) {
-
-                val result = doTripleDot()
-
-                if (result !is OnjSchemaArray) throw OnjParserException.fromErrorMessage(
-                    last().char, code,
-                    "Triple-Dot variable in array is not of type array.", filename
-                )
-
-                for (dotValue in result.schemas) values.add(dotValue)
-                continue
-            }
-
-            values.add(parseValue())
-
-            tryConsume(OnjTokenType.COMMA)
-
-        }
-
-        return OnjSchemaArray(nullable, values)
-    }
-
-
-    private fun doTripleDot(): OnjSchema {
-
-        try {
-            consume(OnjTokenType.DOT)
-            consume(OnjTokenType.DOT)
-        } catch (e: OnjParserException) {
-            throw OnjParserException.fromErrorMessage(
-                last().char, code,
-                "Expected triple-dot or identifier.", filename
-            )
-        }
-
-        try {
-            consume(OnjTokenType.EXCLAMATION)
-        } catch (e: OnjParserException) {
-            throw OnjParserException.fromErrorMessage(
-                last().char, code,
-                "Expected Variable after triple-Dot.", filename
-            )
-        }
-
-        consume(OnjTokenType.IDENTIFIER)
-
-        val toRet = variables[last().literal as String] ?: throw OnjParserException.fromErrorMessage(
-            last().char, code,
-            "Variable '${last().literal as String}' isn't defined.", filename
+        val tokensToImport = OnjTokenizer().tokenize(codeToImport, importPath, false)
+        val parser = OnjSchemaParser(
+            tokensToImport,
+            codeToImport,
+            importPath,
+            fileToImport,
+            file?.let { disallowedImports + file.canonicalFile } ?: disallowedImports
         )
+        return parser.parseTopLevel()
+    }
 
-        if (toRet.nullable) throw OnjParserException.fromErrorMessage(
-            last().char,
-            code,
-            "Variable included via triple dot is not allowed to be nullable",
-            filename
-        )
-
-        return toRet
+    private fun parseKeyValuePair(): Triple<String, OnjSchema, Boolean> {
+        val key = last()
+        val optional = tryConsume(OnjTokenType.QUESTION)
+        consume(OnjTokenType.COLON)
+        return Triple(key.literal as String, parseValue(), optional)
     }
 
     private fun parseValue(): OnjSchema {
-        if (tryConsume(OnjTokenType.L_BRACE)) return parseObject(last(), false)
-        else if (tryConsume(OnjTokenType.L_BRACKET)) return parseArray(last(), false)
-        else if (tryConsume(OnjTokenType.QUESTION)) {
-            if (tryConsume(OnjTokenType.L_BRACE)) return parseObject(last(), true)
-            else if (tryConsume(OnjTokenType.L_BRACKET)) return parseArray(last(), true)
-            else throw OnjParserException.fromErrorToken(last(), "object or array", code, filename)
-        }
-        else return parseArrayDec()
+        return parsePostFixArray()
     }
 
-    private fun parseArrayDec(): OnjSchema {
+    private fun parsePostFixArray(): OnjSchema {
         var left = parseLiteral()
         while (tryConsume(OnjTokenType.L_BRACKET)) {
-            if (tryConsume(OnjTokenType.STAR)) {
-                left = OnjSchemaArray(false, -1, left)
-            } else {
-                consume(OnjTokenType.INT)
-                val size = last().literal as Long
-                if (size < 0) throw OnjParserException.fromErrorMessage(
-                    last().char,
-                    code,
-                    "Array size must be greater than zero",
-                    filename
-                )
-                left = OnjSchemaArray(false, size.toInt(), left)
-            }
+            val size = if (tryConsume(OnjTokenType.INT)) (last().literal as Long).toInt() else null
             consume(OnjTokenType.R_BRACKET)
-            if (tryConsume(OnjTokenType.QUESTION)) left.nullable = true
+            val nullable = tryConsume(OnjTokenType.QUESTION)
+            left = TypeBasedOnjSchemaArray(left, size, nullable)
         }
         return left
     }
 
     private fun parseLiteral(): OnjSchema {
+        val token = consume()
+        val schema = when (token.type) {
 
-        if (tryConsume(OnjTokenType.EXCLAMATION)) return parseSchemaVariable()
-        if (tryConsume(OnjTokenType.DOLLAR)) return parseNamedObjectRef()
-        else if (tryConsume(OnjTokenType.STAR)) return OnjSchemaAny()
-
-        consume(OnjTokenType.IDENTIFIER)
-        val s = when ((last().literal as String).lowercase()) {
-            "int" -> OnjSchemaInt(false)
-            "float" -> OnjSchemaFloat(false)
-            "string" -> OnjSchemaString(false)
-            "boolean" -> OnjSchemaBoolean(false)
-
-            else -> {
-                val name = last().literal as String
-                val type = OnjConfig.getCustomDataType(name)
-                type ?: throw OnjParserException.fromErrorMessage(
-                    last().char,
-                    code,
-                    "Unknown type ${last().literal}",
-                    filename
+            OnjTokenType.T_INT -> OnjSchemaInt(false)
+            OnjTokenType.T_FLOAT -> OnjSchemaFloat(false)
+            OnjTokenType.T_BOOLEAN -> OnjSchemaBoolean(false)
+            OnjTokenType.T_STRING -> OnjSchemaString(false)
+            OnjTokenType.STAR -> OnjSchemaAny()
+            OnjTokenType.L_BRACE -> parseObject()
+            OnjTokenType.L_BRACKET -> parseArray()
+            OnjTokenType.IDENTIFIER -> {
+                val identifierToken = last()
+                val identifier = identifierToken.literal as String
+                variables[identifier] ?: throw OnjParserException.fromErrorMessage(
+                    identifierToken.char, code, "Unknown variable $identifier", fileName
                 )
-                OnjSchemaCustomDataType(name, type, false)
             }
 
-        }
-        if (tryConsume(OnjTokenType.QUESTION)) s.nullable = true
-        return s
-    }
-
-    private fun parseNamedObjectRef(): OnjSchemaNamedObjectGroup {
-        consume(OnjTokenType.IDENTIFIER)
-        val nameToken = last()
-        namedObjectGroupsToCheck.add(nameToken)
-        return OnjSchemaNamedObjectGroup(
-            nameToken.literal as String,
-            tryConsume(OnjTokenType.QUESTION),
-            namedObjects
-        )
-    }
-
-    private fun parseSchemaVariable(): OnjSchema {
-
-        if (!tryConsume(OnjTokenType.IDENTIFIER))
-            throw OnjParserException.fromErrorToken(last(), OnjTokenType.IDENTIFIER, code, filename)
-
-        val name = last().literal as String
-
-        var schema = variables[name] ?: throw OnjParserException.fromErrorMessage(
-            last().char, code,
-            "Variable '$name' isn't defined.", filename
-        )
-
-        if (tryConsume(OnjTokenType.QUESTION)) schema = schema.getAsNullable()
-
-
-        if (tryConsume(OnjTokenType.L_BRACKET)) {
-            val amount = if (tryConsume(OnjTokenType.STAR)) -1
-            else if (tryConsume(OnjTokenType.INT)) last().literal as Int
-            else throw OnjParserException.fromErrorMessage(
-                last().char, code,
-                "Expected number or star.", filename
+            else -> throw OnjParserException.fromErrorToken(
+                token, "value", code, fileName
             )
 
-            consume(OnjTokenType.R_BRACKET)
-
-            schema = if (tryConsume(OnjTokenType.QUESTION)) OnjSchemaArray(
-                true,
-                amount,
-                schema
-            )
-            else OnjSchemaArray(false, amount, schema)
-
         }
-
-        return schema
+        return if (tryConsume(OnjTokenType.QUESTION)) schema.getAsNullable() else schema
     }
 
-    private fun consume(type: OnjTokenType) {
-        if (current().isType(type)) next++
-        else throw OnjParserException.fromErrorToken(tokens[next], type, code, filename)
+    private fun parseObject(): OnjSchema {
+        val keys = mutableMapOf<String, OnjSchema>()
+        val optionalKeys = mutableMapOf<String, OnjSchema>()
+        var allowsAdditional = false
+        while (!end()) {
+
+            if (tryConsume(OnjTokenType.R_BRACE)) break
+
+            if (tryConsume(OnjTokenType.DOT)) {
+                consume(OnjTokenType.DOT)
+                consume(OnjTokenType.DOT)
+
+                if (tryConsume(OnjTokenType.STAR)) {
+                    allowsAdditional = true
+                    continue
+                }
+
+                val token = peek()
+                val toInclude = parseLiteral()
+
+                if (toInclude !is OnjSchemaObject) throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Value included using the triple-dot must be of type Object, found ${toInclude::class.simpleName}",
+                    fileName
+                )
+
+                for ((key, value) in toInclude.keys) {
+                    if (keys.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                        token.char, code,
+                        "key '$key' included using the triple-dot is already defined in the object",
+                        fileName
+                    )
+                    keys[key] = value
+                }
+                for ((key, value) in toInclude.optionalKeys) {
+                    if (optionalKeys.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                        token.char, code,
+                        "key '$key' included using the triple-dot is already defined in the object",
+                        fileName
+                    )
+                    optionalKeys[key] = value
+                }
+
+                if (!tryConsume(OnjTokenType.COMMA)) {
+                    consume(OnjTokenType.R_BRACE)
+                    break
+                }
+                continue
+            }
+
+            consume(OnjTokenType.IDENTIFIER, OnjTokenType.STRING)
+            val keyToken = last()
+            val (key, value, optional) = parseKeyValuePair()
+            val keysToCheck = if (optional) optionalKeys else keys
+
+            if (keysToCheck.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                keyToken.char, code, "key $key was already defined", fileName
+            )
+
+            keysToCheck[key] = value
+
+            if (!tryConsume(OnjTokenType.COMMA)) {
+                consume(OnjTokenType.R_BRACE)
+                break
+            }
+        }
+        return OnjSchemaObject(false, keys, optionalKeys, allowsAdditional)
+
     }
 
-    private fun consume(): OnjToken {
-        next++
-        return last()
+    private fun parseArray(): OnjSchema {
+        val values = mutableListOf<OnjSchema>()
+        while (!end()) {
+
+            if (tryConsume(OnjTokenType.R_BRACKET)) break
+
+            if (tryConsume(OnjTokenType.DOT)) {
+                consume(OnjTokenType.DOT)
+                consume(OnjTokenType.DOT)
+                val token = peek()
+                val toInclude = parseLiteral()
+                if (toInclude is TypeBasedOnjSchemaArray) throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Arrays can only include arrays that were defined as" +
+                    " literals (using the [element, element] syntax)",
+                    fileName
+                )
+                if (toInclude !is LiteralOnjSchemaArray) throw OnjParserException.fromErrorMessage(
+                    token.char, code,
+                    "Value included using the triple-dot must be of type array, found ${toInclude::class.simpleName}",
+                    fileName
+                )
+                for (value in toInclude.schemas) values.add(value)
+
+                if (!tryConsume(OnjTokenType.COMMA)) {
+                    consume(OnjTokenType.R_BRACKET)
+                    break
+                }
+                continue
+            }
+
+            values.add(parseValue())
+
+            if (!tryConsume(OnjTokenType.COMMA)) {
+                consume(OnjTokenType.R_BRACKET)
+                break
+            }
+        }
+        return LiteralOnjSchemaArray(values, false)
     }
+
+
+    private fun end(): Boolean = next >= tokens.size || tokens[next].type == OnjTokenType.EOF
 
     private fun tryConsume(type: OnjTokenType): Boolean {
-        return if (current().isType(type)) {
-            next++
-            true
-        } else false
+        val token = consume()
+        if (type == token.type) return true
+        next--
+        return false
+    }
+
+    private fun tryConsume(vararg types: OnjTokenType): Boolean {
+        val token = consume()
+        if (token.type in types) return true
+        next--
+        return false
     }
 
     private fun last(): OnjToken = tokens[next - 1]
 
-    private fun current(): OnjToken = tokens[next]
+    private fun peek(): OnjToken = tokens[next]
+
+    private fun consume(type: OnjTokenType): OnjToken {
+        val token = consume()
+        if (type == token.type) return token
+        throw OnjParserException.fromErrorToken(token, type, code, fileName)
+    }
+
+    private fun consume(vararg types: OnjTokenType, expected: String? = null): OnjToken {
+        val token = consume()
+        if (token.type in types) return token
+        throw OnjParserException.fromErrorToken(
+            token,
+            expected ?: "one of ${tokenTypesAsString(types)}",
+            code, fileName
+        )
+    }
+
+    private fun tokenTypesAsString(types: Array<out OnjTokenType>): String {
+        return types.joinToString(", ", "[", "]")
+    }
+
+    private fun consume(): OnjToken = tokens[next++]
 
     companion object {
 
-        /**
-         * reads a file and parses it
-         * @throws [java.io.IOException] [OnjParserException]
-         * @return the parsed onj-structure
-         */
-        fun parseFile(path: String): OnjSchema {
-            val code = File(Paths.get(path).toUri()).bufferedReader().use { it.readText() }
-            return OnjSchemaParser().parseSchema(OnjTokenizer().tokenize(code, path), code, path)
-        }
-
-        /**
-         * reads a file and parses it
-         * @throws [java.io.IOException] [OnjParserException]
-         * @return the parsed onj-structure
-         */
         fun parseFile(file: File): OnjSchema {
-            val code = file.bufferedReader().use { it.readText() }
-            return OnjSchemaParser().parseSchema(OnjTokenizer().tokenize(code, file.canonicalPath), code, file.canonicalPath)
+            val code = file.readText(Charsets.UTF_8)
+            val tokens = OnjTokenizer().tokenize(code, file.name, true)
+            return OnjSchemaParser(tokens, code, file.name, file, listOf()).parseTopLevel()
         }
 
-        /**
-         * parses a string
-         * @throws [OnjParserException]
-         * @return the parsed onj-structure
-         */
+        fun parseFile(path: String): OnjSchema = parseFile(Paths.get(path).toFile())
+
         fun parse(code: String): OnjSchema {
-            return OnjSchemaParser().parseSchema(OnjTokenizer().tokenize(code, "anonymous"), code, "anonymous")
+            val tokens = OnjTokenizer().tokenize(code, "anonymous", true)
+            return OnjSchemaParser(tokens, code, "anonymous", null, listOf()).parseTopLevel()
         }
 
     }

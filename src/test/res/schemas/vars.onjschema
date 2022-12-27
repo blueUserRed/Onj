@@ -1,16 +1,16 @@
 
-!myInt = int
+var myInt = int;
 
-test: !myInt
+test: myInt,
 
-!obj = {
-    a: string
-    b: string
-}
+var obj = {
+    a: string,
+    b: string,
+};
 
 coolObj: {
-    i: int
-    ...!obj
-}
+    i: int,
+    ...obj
+},
 
-obj: !obj
+obj: obj

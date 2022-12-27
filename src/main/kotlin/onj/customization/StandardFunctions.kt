@@ -12,7 +12,7 @@ object StandardFunctions {
     @RegisterOnjFunction(schema = "[ float ]")
     fun sqrt(of: OnjFloat): OnjFloat = OnjFloat(kotlin.math.sqrt(of.value))
 
-    @RegisterOnjFunction(schema = "[ *, *[*] ]", type = OnjFunctionType.INFIX )
+    @RegisterOnjFunction(schema = "[ *, *[] ]", type = OnjFunctionType.INFIX )
     fun `in`(search: OnjValue, arr: OnjArray): OnjBoolean = OnjBoolean(search in arr.value)
 
     @RegisterOnjFunction(schema = "int[ 2 ]", type = OnjFunctionType.OPERATOR)

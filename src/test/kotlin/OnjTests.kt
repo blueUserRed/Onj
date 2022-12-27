@@ -11,7 +11,7 @@ object OnjTests : Test() {
     @JvmStatic
     fun main(args: Array<String>) {
 //        println(onjFile("toDel"))
-//        OnjSchemaParser.parse("!test = int[*] test2: [ ...!test ]")
+        OnjSchemaParser.parse("var test = int[]; test2: [ ...test ]")
 //        OnjSchemaParser.parse("test: [string]")
 //        OnjSchemaParser.parse("test: float[2]")
 //        OnjParser.parse("key: 2.0 pow 10.0") //TODO: looks like i will have to rewrite OnjTokenizer as well
@@ -32,6 +32,7 @@ object OnjTests : Test() {
     @TestCase
     fun testStringEscapes() {
         val obj = onjFile("stringEscapes")
+        obj as OnjObject
         assertEquals(
             obj.get<String>("escapes"),
             "n: \n, r: \r, t: \t, \" \' \\"
@@ -41,6 +42,7 @@ object OnjTests : Test() {
     @TestCase
     fun testCalculations() {
         val obj = fileWithSchema("calculations")
+        obj as OnjObject
         assertEquals(obj.get<Long>("is10"), 10L)
         assertEquals(obj.get<String>("string10"), "10")
         assertEquals(obj.get<String>("string8"), "8")
@@ -51,6 +53,7 @@ object OnjTests : Test() {
     @TestCase
     fun testVarAccesses() {
         val obj = onjFile("varAccesses")
+        obj as OnjObject
         assertEquals(obj.get<String>("hi"), "hi")
         assertEquals(obj.get<Long>("five"), 5L)
         assertEquals(obj.get<Long>("1"), 1L)
@@ -90,17 +93,17 @@ object OnjTests : Test() {
         onjFile("importLoop")
     }
 
-    private fun onjFile(name: String): OnjObject = OnjParser.parseFile("src/test/res/files/$name.onj")
-    private fun invalidOnjFile(name: String): OnjObject = OnjParser.parseFile("src/test/res/files/invalid/$name.onj")
+    private fun onjFile(name: String): OnjValue = OnjParser.parseFile("src/test/res/files/$name.onj")
+    private fun invalidOnjFile(name: String): OnjValue = OnjParser.parseFile("src/test/res/files/invalid/$name.onj")
     private fun onjSchemaFile(name: String): OnjSchema = OnjSchemaParser.parseFile("src/test/res/schemas/$name.onjschema")
 
-    private fun fileWithSchema(name: String): OnjObject {
+    private fun fileWithSchema(name: String): OnjValue {
         val obj = onjFile(name)
         onjSchemaFile(name).assertMatches(obj)
         return obj
     }
 
-    private fun invalidFileWithSchema(name: String): OnjObject {
+    private fun invalidFileWithSchema(name: String): OnjValue {
         val obj = invalidOnjFile(name)
         onjSchemaFile(name).assertMatches(obj)
         return obj

@@ -117,7 +117,7 @@ class OnjParser private constructor(
                 importPathToken.char, code, "Couldn't read file '$importPath'", fileName
             )
         }
-        val tokensToImport = OnjTokenizer().tokenize(codeToImport, importPath)
+        val tokensToImport = OnjTokenizer().tokenize(codeToImport, importPath, false)
         val parser = OnjParser(
             tokensToImport,
             codeToImport,
@@ -364,7 +364,7 @@ class OnjParser private constructor(
                     keys[key] = value
                 }
                 if (!tryConsume(OnjTokenType.COMMA)) {
-                    consume(OnjTokenType.R_BRACKET)
+                    consume(OnjTokenType.R_BRACE)
                     break
                 }
                 continue
@@ -510,16 +510,16 @@ class OnjParser private constructor(
 
     companion object {
 
-        fun parseFile(file: File): OnjObject {
+        fun parseFile(file: File): OnjValue {
             val code = file.readText(Charsets.UTF_8)
-            val tokens = OnjTokenizer().tokenize(code, file.name)
+            val tokens = OnjTokenizer().tokenize(code, file.name, false)
             return OnjParser(tokens, code, file.name, file, listOf()).parseTopLevel()
         }
 
-        fun parseFile(path: String): OnjObject = parseFile(Paths.get(path).toFile())
+        fun parseFile(path: String): OnjValue = parseFile(Paths.get(path).toFile())
 
-        fun parse(code: String): OnjObject {
-            val tokens = OnjTokenizer().tokenize(code, "anonymous")
+        fun parse(code: String): OnjValue {
+            val tokens = OnjTokenizer().tokenize(code, "anonymous", false)
             return OnjParser(tokens, code, "anonymous", null, listOf()).parseTopLevel()
         }
 

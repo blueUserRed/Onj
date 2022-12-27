@@ -9,11 +9,13 @@ internal class OnjTokenizer {
     private val tokens: MutableList<OnjToken> = mutableListOf()
     private var code: String = ""
     private var filename: String = ""
+    private var isSchema: Boolean = false
 
     @Synchronized
-    fun tokenize(code: String, filename: String): List<OnjToken> {
+    fun tokenize(code: String, filename: String, isSchema: Boolean): List<OnjToken> {
         this.code = code
         this.filename = filename
+        this.isSchema = isSchema
 
         while (next != code.length) {
             tokens.add(getCurrentToken() ?: continue)
@@ -121,6 +123,16 @@ internal class OnjTokenizer {
         if (!end()) next--
 //        next--
         val identifier = code.substring(start, next)
+
+        if (isSchema) {
+            when (identifier.uppercase()) {
+                "INT" -> return OnjToken(OnjTokenType.T_INT, identifier, start)
+                "FLOAT" -> return OnjToken(OnjTokenType.T_FLOAT, identifier, start)
+                "BOOLEAN" -> return OnjToken(OnjTokenType.T_BOOLEAN, identifier, start)
+                "STRING" -> return OnjToken(OnjTokenType.T_STRING, identifier, start)
+            }
+        }
+
         return when(identifier.uppercase()) {
             "TRUE" -> OnjToken(OnjTokenType.BOOLEAN, true, start)
             "FALSE" -> OnjToken(OnjTokenType.BOOLEAN, false, start)
@@ -128,7 +140,6 @@ internal class OnjTokenizer {
             "POS_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.POSITIVE_INFINITY, start)
             "NEG_INFINITY" -> OnjToken(OnjTokenType.FLOAT, Double.NEGATIVE_INFINITY, start)
             "NAN" -> OnjToken(OnjTokenType.FLOAT, Double.NaN, start)
-//            "EXPORT" -> onj.builder.OnjToken(onj.builder.OnjTokenType.EXPORT, identifier, start)
             "IMPORT" -> OnjToken(OnjTokenType.IMPORT, identifier, start)
             "VAR" -> OnjToken(OnjTokenType.VAR, identifier, start)
             else -> OnjToken(OnjTokenType.IDENTIFIER, identifier, start)
@@ -242,6 +253,7 @@ enum class OnjTokenType {
     L_BRACE, R_BRACE, L_PAREN, R_PAREN, L_BRACKET, R_BRACKET, L_SHARP, R_SHARP,
     COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV, DOLLAR, HASH, SEMICOLON,
     IDENTIFIER, STRING, INT, FLOAT, BOOLEAN, NULL,
+    T_INT, T_BOOLEAN, T_STRING, T_FLOAT,
     IMPORT, VAR,
     EOF
 }
