@@ -1,0 +1,8 @@
+
+group: $GroupA {
+    i: 234,
+    s: "s"
+},
+otherGroup: $OtherGroupB {
+    strings: [ "s", "s1", "s2" ]
+}

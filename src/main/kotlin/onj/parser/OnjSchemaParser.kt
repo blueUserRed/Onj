@@ -1,9 +1,6 @@
 package onj.parser
 
 import onj.schema.*
-import onj.value.OnjArray
-import onj.value.OnjObject
-import onj.value.OnjValue
 import java.io.File
 import java.io.IOException
 import java.nio.file.Paths
@@ -18,7 +15,8 @@ class OnjSchemaParser internal constructor(
 
     private var next = 0
     private val variables: MutableMap<String, OnjSchema> = mutableMapOf()
-
+    private val namedObjectGroups: MutableMap<String, List<OnjSchemaNamedObject>> = mutableMapOf()
+    private val namedObjectTokensToCheck: MutableList<OnjToken> = mutableListOf()
 
     private fun parseTopLevel(): OnjSchema {
         val keys = mutableMapOf<String, OnjSchema>()
@@ -28,7 +26,7 @@ class OnjSchemaParser internal constructor(
         while (!end()) {
             allowKeyValue = parseTopLevelDeclaration(keys, optionalKeys, allowKeyValue)
         }
-
+        checkNamedObjectTokens()
         return OnjSchemaObject(false, keys, optionalKeys, false)
     }
 
@@ -43,6 +41,16 @@ class OnjSchemaParser internal constructor(
         consume(OnjTokenType.SEMICOLON)
     }
 
+    private fun checkNamedObjectTokens() {
+        val names = namedObjectGroups.keys
+        for (token in namedObjectTokensToCheck) {
+            val name = token.literal as String
+            if (name !in names) throw OnjParserException.fromErrorMessage(
+                token.char, code, "No group named $name", fileName
+            )
+        }
+    }
+
     private fun parseTopLevelDeclaration(
         keys: MutableMap<String, OnjSchema>,
         optionalKeys: MutableMap<String, OnjSchema>,
@@ -54,6 +62,7 @@ class OnjSchemaParser internal constructor(
 
             OnjTokenType.VAR -> parseVariableDeclaration()
             OnjTokenType.IMPORT -> parseImport()
+            OnjTokenType.DOLLAR -> parseNamedObjectGroup()
 
             OnjTokenType.IDENTIFIER, OnjTokenType.STRING -> {
 
@@ -82,11 +91,63 @@ class OnjSchemaParser internal constructor(
         return true
     }
 
+    private fun parseNamedObjectGroup() {
+        consume(OnjTokenType.IDENTIFIER)
+        val groupNameToken = last()
+        val groupName = groupNameToken.literal as String
+        consume(OnjTokenType.L_BRACE)
+        val usedNames = mutableListOf<String>()
+        val objects = mutableListOf<OnjSchemaNamedObject>()
+        namedObjectGroups
+            .flatMap { it.value }
+            .forEach { usedNames.add(it.name) }
+        while (tryConsume(OnjTokenType.DOLLAR)) {
+            val nameToken = consume(OnjTokenType.IDENTIFIER)
+            val name = nameToken.literal as String
+            consume(OnjTokenType.L_BRACE)
+            val obj = parseObject() as OnjSchemaObject
+            if (name in usedNames) throw OnjParserException.fromErrorMessage(
+                nameToken.char, code,
+                "Object with name $name already exists" +
+                        "(Note that object names must be unique across groups)",
+                fileName
+            )
+            usedNames.add(name)
+            objects.add(OnjSchemaNamedObject(name, obj))
+        }
+        consume(OnjTokenType.R_BRACE)
+        if (namedObjectGroups.containsKey(groupName)) throw OnjParserException.fromErrorMessage(
+            groupNameToken.char, code, "Group named $groupName already exists", fileName
+        )
+        namedObjectGroups[groupName] = objects
+    }
+
     private fun parseImport() {
         val importPathToken = consume(OnjTokenType.STRING)
         val importPath = importPathToken.literal as String
 
-        val toImport = doOnjSchemaFileImport(importPath, importPathToken)
+        val (toImport, parser) = doOnjSchemaFileImport(importPath, importPathToken)
+
+        val namedObjectNames = namedObjectGroups
+            .flatMap { it.value }
+            .map { it.name }
+
+        for ((namedObjectGroup, namedObjects) in parser.namedObjectGroups) {
+            if (namedObjectGroup in namedObjectGroups.keys) throw OnjParserException.fromErrorMessage(
+                importPathToken.char, code,
+                "named object group $namedObjectGroup imported here was already declared",
+                fileName
+            )
+            for (namedObject in namedObjects) {
+                if (namedObject.name in namedObjectNames) throw OnjParserException.fromErrorMessage(
+                    importPathToken.char, code,
+                    "named object ${namedObject.name} imported here was already declared" +
+                            "(Note that named object names need to be unique across groups)",
+                    fileName
+                )
+            }
+            namedObjectGroups[namedObjectGroup] = namedObjects
+        }
 
         consume(OnjTokenType.IDENTIFIER)
         if ((last().literal as String).lowercase() != "as") throw OnjParserException.fromErrorToken(
@@ -108,7 +169,7 @@ class OnjSchemaParser internal constructor(
     private fun doOnjSchemaFileImport(
         importPath: String,
         importPathToken: OnjToken
-    ): OnjSchema {
+    ): Pair<OnjSchema, OnjSchemaParser> {
         val fileToImport = file?.let {
             file.parentFile.toPath().resolve(importPath).toFile()
         } ?: Paths.get(importPath).toFile()
@@ -126,7 +187,7 @@ class OnjSchemaParser internal constructor(
                 importPathToken.char, code, "Couldn't read file '$importPath'", fileName, e
             )
         }
-        val tokensToImport = OnjTokenizer().tokenize(codeToImport, importPath, false)
+        val tokensToImport = OnjTokenizer().tokenize(codeToImport, importPath, true)
         val parser = OnjSchemaParser(
             tokensToImport,
             codeToImport,
@@ -134,7 +195,7 @@ class OnjSchemaParser internal constructor(
             fileToImport,
             file?.let { disallowedImports + file.canonicalFile } ?: disallowedImports
         )
-        return parser.parseTopLevel()
+        return parser.parseTopLevel() to parser
     }
 
     private fun parseKeyValuePair(): Triple<String, OnjSchema, Boolean> {
@@ -176,6 +237,11 @@ class OnjSchemaParser internal constructor(
                 variables[identifier] ?: throw OnjParserException.fromErrorMessage(
                     identifierToken.char, code, "Unknown variable $identifier", fileName
                 )
+            }
+            OnjTokenType.DOLLAR -> {
+                val nameToken = consume(OnjTokenType.IDENTIFIER)
+                namedObjectTokensToCheck.add(nameToken)
+                OnjSchemaNamedObjectGroup(nameToken.literal as String, false, namedObjectGroups)
             }
 
             else -> throw OnjParserException.fromErrorToken(

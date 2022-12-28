@@ -324,7 +324,7 @@ private fun getActualType(value: OnjValue): String {
     }
 }
 
-internal class OnjSchemaNamedObject(val name: String, val obj: OnjSchemaObject)
+class OnjSchemaNamedObject(val name: String, val obj: OnjSchemaObject)
 
 fun List<OnjSchema>.toSchemaArray(): OnjSchemaArray = LiteralOnjSchemaArray(this, false)
 

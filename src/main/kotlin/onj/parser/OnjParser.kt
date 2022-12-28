@@ -328,6 +328,13 @@ class OnjParser private constructor(
                 consume(OnjTokenType.R_PAREN)
                 value
             }
+            OnjTokenType.DOLLAR -> {
+                val nameToken = consume(OnjTokenType.IDENTIFIER)
+                consume(OnjTokenType.L_BRACE)
+                val obj = parseObject()
+                @Suppress("UNCHECKED_CAST")
+                OnjNamedObject(nameToken.literal as String, obj.value as Map<String, OnjValue>)
+            }
 
             else -> throw OnjParserException.fromErrorToken(
                 literal, "literal", code, fileName

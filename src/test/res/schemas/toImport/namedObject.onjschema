@@ -1,0 +1,14 @@
+
+$Group {
+
+    $GroupA {
+        i: int,
+        s: string
+    }
+
+    $GroupB {
+        i: int,
+        b: boolean
+    }
+
+}
