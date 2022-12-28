@@ -179,7 +179,7 @@ class OnjSchemaObject internal constructor(
 /**
  * the schema of an array
  */
-abstract class OnjSchemaArray(nullable: Boolean) : OnjSchema(nullable)
+sealed class OnjSchemaArray(nullable: Boolean) : OnjSchema(nullable)
 
 class TypeBasedOnjSchemaArray(
     private val type: OnjSchema,

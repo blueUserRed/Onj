@@ -4,7 +4,14 @@ import kotlin.math.pow
 import onj.customization.RegisterOnjFunction.*
 import onj.value.*
 
-object StandardFunctions {
+object StandardConfig {
+
+    internal fun bindDefaultVariables() {
+        OnjConfig.bindGlobalVariable("true", OnjBoolean(true))
+        OnjConfig.bindGlobalVariable("false", OnjBoolean(false))
+        OnjConfig.bindGlobalVariable("NaN", OnjFloat(Double.NaN))
+        OnjConfig.bindGlobalVariable("infinity", OnjFloat(Double.POSITIVE_INFINITY))
+    }
 
     @RegisterOnjFunction(schema = "float[ 2 ]", type = OnjFunctionType.INFIX)
     fun pow(x: OnjFloat, to: OnjFloat): OnjFloat = OnjFloat(x.value.pow(to.value))

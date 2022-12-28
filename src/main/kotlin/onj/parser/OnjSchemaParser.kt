@@ -187,7 +187,7 @@ class OnjSchemaParser internal constructor(
                 importPathToken.char, code, "Couldn't read file '$importPath'", fileName, e
             )
         }
-        val tokensToImport = OnjTokenizer().tokenize(codeToImport, importPath, true)
+        val tokensToImport = Tokenizer(codeToImport, importPath, true).tokenize()
         val parser = OnjSchemaParser(
             tokensToImport,
             codeToImport,
@@ -410,14 +410,14 @@ class OnjSchemaParser internal constructor(
 
         fun parseFile(file: File): OnjSchema {
             val code = file.readText(Charsets.UTF_8)
-            val tokens = OnjTokenizer().tokenize(code, file.name, true)
+            val tokens = Tokenizer(code, file.name, true).tokenize()
             return OnjSchemaParser(tokens, code, file.name, file, listOf()).parseTopLevel()
         }
 
         fun parseFile(path: String): OnjSchema = parseFile(Paths.get(path).toFile())
 
         fun parse(code: String): OnjSchema {
-            val tokens = OnjTokenizer().tokenize(code, "anonymous", true)
+            val tokens = Tokenizer(code, "anonymous", true).tokenize()
             return OnjSchemaParser(tokens, code, "anonymous", null, listOf()).parseTopLevel()
         }
 

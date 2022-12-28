@@ -12,10 +12,6 @@ data class OnjFunction(
     private val function: (Array<OnjValue>) -> OnjValue
 ) {
 
-//    init {
-//        if (canBeUsedAsInfix && paramsSchema.)
-//    }
-
     internal operator fun invoke(
         params: Array<OnjValue>,
         functionCallToken: OnjToken,

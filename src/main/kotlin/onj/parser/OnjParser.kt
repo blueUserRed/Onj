@@ -117,7 +117,7 @@ class OnjParser private constructor(
                 importPathToken.char, code, "Couldn't read file '$importPath'", fileName
             )
         }
-        val tokensToImport = OnjTokenizer().tokenize(codeToImport, importPath, false)
+        val tokensToImport = Tokenizer(codeToImport, importPath, false).tokenize()
         val parser = OnjParser(
             tokensToImport,
             codeToImport,
@@ -276,7 +276,7 @@ class OnjParser private constructor(
             if (accessWith.isString()) {
                 if (!left.isOnjObject()) throw OnjParserException.fromErrorMessage(
                     token.char, code,
-                    "Cannot access an object using type ${accessWith::class.simpleName}",
+                    "Cannot access ${left::class.simpleName} using type ${accessWith::class.simpleName}",
                     fileName
                 )
                 left = (left as OnjObject)[accessWith.value as String] ?: throw OnjParserException.fromErrorMessage(
@@ -287,7 +287,7 @@ class OnjParser private constructor(
             } else if (accessWith.isInt()) {
                 if (!left.isOnjArray()) throw OnjParserException.fromErrorMessage(
                     token.char, code,
-                    "Cannot access an array using type ${accessWith::class.simpleName}",
+                    "Cannot access ${left::class.simpleName} using type ${accessWith::class.simpleName}",
                     fileName
                 )
                 left = (left as OnjArray).value.getOrNull((accessWith.value as Long).toInt())
@@ -433,9 +433,11 @@ class OnjParser private constructor(
     private fun parseVariable(): OnjValue {
         val nameToken = last()
         val name = nameToken.literal as String
-        return variables[name] ?: throw OnjParserException.fromErrorMessage(
-            nameToken.char, code, "Unknown variable $name", fileName
-        )
+        return variables[name]
+            ?:  OnjConfig.getGlobalVariable(name)
+            ?:  throw OnjParserException.fromErrorMessage(
+                    nameToken.char, code, "Unknown variable $name", fileName
+                )
     }
 
     private fun parseFunctionCall(nameToken: OnjToken): OnjValue {
@@ -519,14 +521,14 @@ class OnjParser private constructor(
 
         fun parseFile(file: File): OnjValue {
             val code = file.readText(Charsets.UTF_8)
-            val tokens = OnjTokenizer().tokenize(code, file.name, false)
+            val tokens = Tokenizer(code, file.name, false).tokenize()
             return OnjParser(tokens, code, file.name, file, listOf()).parseTopLevel()
         }
 
         fun parseFile(path: String): OnjValue = parseFile(Paths.get(path).toFile())
 
         fun parse(code: String): OnjValue {
-            val tokens = OnjTokenizer().tokenize(code, "anonymous", false)
+            val tokens = Tokenizer(code, "anonymous", false).tokenize()
             return OnjParser(tokens, code, "anonymous", null, listOf()).parseTopLevel()
         }
 

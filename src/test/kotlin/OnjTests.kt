@@ -10,13 +10,7 @@ object OnjTests : Test() {
 
     @JvmStatic
     fun main(args: Array<String>) {
-//        println(onjFile("toDel"))
-//        OnjSchemaParser.parse("var test = int[]; test2: [ ...test ]")
-//        OnjSchemaParser.parse("test: [string]")
-//        OnjSchemaParser.parse("test: float[2]")
-//        OnjParser.parse("key: 2.0 pow 10.0") //TODO: looks like i will have to rewrite OnjTokenizer as well
         run()
-//        testImportLoops()
     }
 
     @TestCase

@@ -6,8 +6,6 @@ import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
 import onj.schema.*
 import onj.value.*
-import kotlin.math.pow
-import kotlin.math.sqrt
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
@@ -18,20 +16,26 @@ import kotlin.reflect.full.starProjectedType
 
 object OnjConfig {
 
-    private val functions: MutableSet<OnjFunction> = mutableSetOf()
-    private val customDataTypes: MutableMap<String, KClass<*>> = mutableMapOf()
+    private val globalFunctions: MutableSet<OnjFunction> = mutableSetOf()
+    private val globalCustomDataTypes: MutableMap<String, KClass<*>> = mutableMapOf()
+    private val globalVariables: MutableMap<String, OnjValue> = mutableMapOf()
 
     init {
-        registerGlobalFunctions(StandardFunctions)
+        StandardConfig.bindDefaultVariables()
+        registerGlobalFunctions(StandardConfig)
     }
 
-    fun <T> addCustomDataType(name: String, type: KClass<T>) where T : OnjValue {
-        customDataTypes[name] = type
+    fun <T> addGlobalCustomDataType(name: String, type: KClass<T>) where T : OnjValue {
+        globalCustomDataTypes[name] = type
     }
 
-    fun getCustomDataType(name: String): KClass<*>? = customDataTypes[name]
+    fun getGlobalCustomDataType(name: String): KClass<*>? = globalCustomDataTypes[name]
 
-    fun addGlobalFunction(function: OnjFunction): Unit = run { functions.add(function) }
+    fun bindGlobalVariable(name: String, value: OnjValue) {
+        globalVariables[name] = value
+    }
+
+    fun addGlobalFunction(function: OnjFunction): Unit = run { globalFunctions.add(function) }
 
     fun registerGlobalFunctions(obj: Any) {
         val clazz = obj::class
@@ -120,10 +124,13 @@ object OnjConfig {
 
     }
 
-    fun getFunction(name: String, args: Array<OnjValue>): OnjFunction? = functions.firstOrNull {
+    fun getGlobalVariable(name: String): OnjValue? = globalVariables[name]
+
+    fun getFunction(name: String, args: Array<OnjValue>): OnjFunction? = globalFunctions.firstOrNull {
         return@firstOrNull it.name == name && it.paramsSchema.check(OnjArray(args.toList())) == null
     }
-    fun getInfixFunction(name: String, args: Array<OnjValue>): OnjFunction? = functions
+
+    fun getInfixFunction(name: String, args: Array<OnjValue>): OnjFunction? = globalFunctions
         .filter { it.canBeUsedAsInfix }
         .firstOrNull {
             return@firstOrNull it.name == name && it.paramsSchema.check(OnjArray(args.toList())) == null
