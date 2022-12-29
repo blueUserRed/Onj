@@ -134,7 +134,7 @@ object OnjConfig {
         val paramsCount = if (hasReceiver) function.parameters.size - 1 else function.parameters.size
 
         if (
-            (type == OnjFunctionType.INFIX || type == OnjFunctionType.OPERATOR) &&
+            (type == OnjFunctionType.INFIX || (type == OnjFunctionType.OPERATOR && function.name != "unaryMinus")) &&
             paramsCount != 2
         ) {
             throw RuntimeException(
@@ -159,9 +159,9 @@ object OnjConfig {
         OnjFunctionType.INFIX -> name
         OnjFunctionType.CONVERSION -> "convert%$name"
         OnjFunctionType.OPERATOR -> {
-            if (name !in arrayOf("plus", "minus", "star", "div")) throw RuntimeException(
+            if (name !in arrayOf("plus", "minus", "star", "div", "unaryMinus")) throw RuntimeException(
                 "could not register function $name because it is marked as an operator but its name is not one of" +
-                "'plus', 'minus', 'star', 'div"
+                "'plus', 'minus', 'star', 'div', 'unaryMinus'"
             )
             "operator%$name"
         }

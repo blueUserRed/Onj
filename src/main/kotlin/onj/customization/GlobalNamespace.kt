@@ -87,6 +87,13 @@ object GlobalNamespace {
     fun div(a: OnjFloat, b: OnjFloat): OnjFloat = OnjFloat(a.value / b.value)
 
 
+    @RegisterOnjFunction(schema = "params: [int]", type = OnjFunctionType.OPERATOR)
+    fun unaryMinus(a: OnjInt): OnjInt = OnjInt(-a.value)
+
+    @RegisterOnjFunction(schema = "params: [float]", type = OnjFunctionType.OPERATOR)
+    fun unaryMinus(a: OnjFloat): OnjFloat = OnjFloat(-a.value)
+
+
     @RegisterOnjFunction(schema = "params: [*]", type = OnjFunctionType.CONVERSION)
     fun string(toConvert: OnjValue): OnjString = OnjString(toConvert.toString())
 

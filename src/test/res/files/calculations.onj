@@ -1,8 +1,8 @@
 
-var arr = [ 1, 2, 3, 4, true, "hi", null ];
+var arr = [ 1, -2, 3, 4, true, "hi", null ];
 var two = 2;
 
-anInt: 1 + 2,
+anInt: (-((1 + -2)#float))#int,
 anInt2: 5 / 2,
 aFloat: 4.0 + 12,
 is10: 2 + 4 * 2,
