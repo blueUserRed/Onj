@@ -1,3 +1,4 @@
+import onj.customization.OnjConfig
 import onj.parser.OnjParser
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
@@ -9,6 +10,7 @@ object OnjTests : Test() {
 
     @JvmStatic
     fun main(args: Array<String>) {
+        OnjConfig.registerNameSpace("Test", TestNamespace)
         run()
     }
 
@@ -99,6 +101,11 @@ object OnjTests : Test() {
             obj.get<String>("test"),
             "abc"
         )
+    }
+
+    @TestCase
+    fun testNamespace() {
+        fileWithSchema("namespace")
     }
 
     private fun onjFile(name: String): OnjValue = OnjParser.parseFile("src/test/res/files/$name.onj")

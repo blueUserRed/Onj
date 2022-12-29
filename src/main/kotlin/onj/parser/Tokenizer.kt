@@ -92,6 +92,7 @@ internal class Tokenizer(
             "var" -> OnjToken(OnjTokenType.VAR, null, start)
             "import" -> OnjToken(OnjTokenType.IMPORT, null, start)
             "null" -> OnjToken(OnjTokenType.NULL, null, start)
+            "use" -> OnjToken(OnjTokenType.USE, null, start)
             else -> OnjToken(OnjTokenType.IDENTIFIER, identifier, start)
         }
     }
@@ -250,6 +251,6 @@ enum class OnjTokenType {
     COMMA, COLON, EQUALS, EXCLAMATION, QUESTION, STAR, DOT, PLUS, MINUS, DIV, DOLLAR, HASH, SEMICOLON,
     IDENTIFIER, STRING, INT, FLOAT, BOOLEAN, NULL,
     T_INT, T_BOOLEAN, T_STRING, T_FLOAT,
-    IMPORT, VAR,
+    IMPORT, VAR, USE,
     EOF
 }

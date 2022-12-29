@@ -26,6 +26,8 @@ object OnjConfig {
 
     fun getGlobalNamespace(): Namespace? = namespaces["global"]
 
+    fun getNamespace(name: String): Namespace? = namespaces[name]
+
     fun registerNameSpace(name: String, obj: Any) {
         val clazz = obj::class
         val annotation = clazz.findAnnotation<OnjNamespace>()
@@ -94,19 +96,9 @@ object OnjConfig {
         for (function in clazz.functions) {
             val annotation = function.findAnnotation<RegisterOnjFunction>() ?: continue
             assertThatFunctionCanBeRegistered(obj, annotation.type, function)
-            val schemaObj = try {
-                OnjSchemaParser.parse("params: ${annotation.schema}")
-            } catch (e: OnjParserException) {
-                throw RuntimeException("schema supplied by function ${function.name} has a syntax error", e)
-            }
-            schemaObj as OnjSchemaObject
-            val schema = schemaObj.keys["params"]
-            if (schema !is OnjSchemaArray) throw RuntimeException(
-                "schema must be an array!"
-            )
             val onjFunction = OnjFunction(
                 getRegistrationNameForFunction(annotation.type, function.name),
-                schema,
+                annotation.schema,
                 annotation.type == OnjFunctionType.INFIX
             ) { function.call(obj, *it) as OnjValue }
             functions.add(onjFunction)

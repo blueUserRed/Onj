@@ -45,6 +45,19 @@ class OnjParser private constructor(
             OnjTokenType.VAR -> parseVariableDeclaration()
             OnjTokenType.IMPORT -> parseImport()
 
+            OnjTokenType.USE -> {
+                val identifierToken = consume(OnjTokenType.IDENTIFIER)
+                consume(OnjTokenType.SEMICOLON)
+                val name = identifierToken.literal as String
+                val namespace = OnjConfig.getNamespace(name)
+                    ?: throw OnjParserException.fromErrorMessage(
+                        identifierToken.char, code,
+                        "Could not find namespace $name",
+                        fileName
+                    )
+                namespaces.add(namespace)
+            }
+
             OnjTokenType.IDENTIFIER, OnjTokenType.STRING -> {
 
                 if (!allowKeyValue) throw OnjParserException.fromErrorToken(

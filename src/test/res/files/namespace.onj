@@ -1,0 +1,5 @@
+
+use Test;
+
+key1: testIdentity(globalVar),
+key2: testString("hi")

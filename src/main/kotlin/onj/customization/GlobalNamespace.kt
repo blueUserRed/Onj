@@ -26,74 +26,74 @@ object GlobalNamespace {
     )
 
 
-    @RegisterOnjFunction(schema = "float[2]", type = OnjFunctionType.INFIX)
+    @RegisterOnjFunction(schema = "params: float[2]", type = OnjFunctionType.INFIX)
     fun pow(x: OnjFloat, to: OnjFloat): OnjFloat = OnjFloat(x.value.pow(to.value))
 
-    @RegisterOnjFunction(schema = "[float]")
+    @RegisterOnjFunction(schema = "params: [float]")
     fun sqrt(of: OnjFloat): OnjFloat = OnjFloat(kotlin.math.sqrt(of.value))
 
-    @RegisterOnjFunction(schema = "[*, *[]]", type = OnjFunctionType.INFIX )
+    @RegisterOnjFunction(schema = "params: [*, *[]]", type = OnjFunctionType.INFIX )
     fun `in`(search: OnjValue, arr: OnjArray): OnjBoolean = OnjBoolean(search in arr.value)
 
-    @RegisterOnjFunction(schema = "int[2]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: int[2]", type = OnjFunctionType.OPERATOR)
     fun plus(a: OnjInt, b: OnjInt): OnjInt = OnjInt(a.value + b.value)
 
-    @RegisterOnjFunction(schema = "[int, float]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: [int, float]", type = OnjFunctionType.OPERATOR)
     fun plus(a: OnjInt, b: OnjFloat): OnjFloat = OnjFloat(a.value + b.value)
 
-    @RegisterOnjFunction(schema = "[float, int]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: [float, int]", type = OnjFunctionType.OPERATOR)
     fun plus(a: OnjFloat, b: OnjInt): OnjFloat = OnjFloat(a.value + b.value)
 
-    @RegisterOnjFunction(schema = "float[2]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: float[2]", type = OnjFunctionType.OPERATOR)
     fun plus(a: OnjFloat, b: OnjFloat): OnjFloat = OnjFloat(a.value + b.value)
 
 
-    @RegisterOnjFunction(schema = "int[2]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: int[2]", type = OnjFunctionType.OPERATOR)
     fun minus(a: OnjInt, b: OnjInt): OnjInt = OnjInt(a.value - b.value)
 
-    @RegisterOnjFunction(schema = "[int, float]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: [int, float]", type = OnjFunctionType.OPERATOR)
     fun minus(a: OnjInt, b: OnjFloat): OnjFloat = OnjFloat(a.value - b.value)
 
-    @RegisterOnjFunction(schema = "[float, int]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: [float, int]", type = OnjFunctionType.OPERATOR)
     fun minus(a: OnjFloat, b: OnjInt): OnjFloat = OnjFloat(a.value - b.value)
 
-    @RegisterOnjFunction(schema = "float[2]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: float[2]", type = OnjFunctionType.OPERATOR)
     fun minus(a: OnjFloat, b: OnjFloat): OnjFloat = OnjFloat(a.value - b.value)
 
 
-    @RegisterOnjFunction(schema = "int[2]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: int[2]", type = OnjFunctionType.OPERATOR)
     fun star(a: OnjInt, b: OnjInt): OnjInt = OnjInt(a.value * b.value)
 
-    @RegisterOnjFunction(schema = "[int, float]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: [int, float]", type = OnjFunctionType.OPERATOR)
     fun star(a: OnjInt, b: OnjFloat): OnjFloat = OnjFloat(a.value * b.value)
 
-    @RegisterOnjFunction(schema = "[float, int]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: [float, int]", type = OnjFunctionType.OPERATOR)
     fun star(a: OnjFloat, b: OnjInt): OnjFloat = OnjFloat(a.value * b.value)
 
-    @RegisterOnjFunction(schema = "float[2]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: float[2]", type = OnjFunctionType.OPERATOR)
     fun star(a: OnjFloat, b: OnjFloat): OnjFloat = OnjFloat(a.value * b.value)
 
 
-    @RegisterOnjFunction(schema = "int[2]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: int[2]", type = OnjFunctionType.OPERATOR)
     fun div(a: OnjInt, b: OnjInt): OnjInt = OnjInt(a.value / b.value)
 
-    @RegisterOnjFunction(schema = "[int, float]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: [int, float]", type = OnjFunctionType.OPERATOR)
     fun div(a: OnjInt, b: OnjFloat): OnjFloat = OnjFloat(a.value / b.value)
 
-    @RegisterOnjFunction(schema = "[float, int]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: [float, int]", type = OnjFunctionType.OPERATOR)
     fun div(a: OnjFloat, b: OnjInt): OnjFloat = OnjFloat(a.value / b.value)
 
-    @RegisterOnjFunction(schema = "float[2]", type = OnjFunctionType.OPERATOR)
+    @RegisterOnjFunction(schema = "params: float[2]", type = OnjFunctionType.OPERATOR)
     fun div(a: OnjFloat, b: OnjFloat): OnjFloat = OnjFloat(a.value / b.value)
 
 
-    @RegisterOnjFunction(schema = "[*]", type = OnjFunctionType.CONVERSION)
+    @RegisterOnjFunction(schema = "params: [*]", type = OnjFunctionType.CONVERSION)
     fun string(toConvert: OnjValue): OnjString = OnjString(toConvert.toString())
 
-    @RegisterOnjFunction(schema = "[int]", type = OnjFunctionType.CONVERSION)
+    @RegisterOnjFunction(schema = "params: [int]", type = OnjFunctionType.CONVERSION)
     fun float(toConvert: OnjInt): OnjFloat = OnjFloat(toConvert.value.toDouble())
 
-    @RegisterOnjFunction(schema = "[float]", type = OnjFunctionType.CONVERSION)
+    @RegisterOnjFunction(schema = "params: [float]", type = OnjFunctionType.CONVERSION)
     fun int(toConvert: OnjFloat): OnjInt = OnjInt(toConvert.value.toLong())
 
 }
