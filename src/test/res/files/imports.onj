@@ -1,5 +1,5 @@
 
-var colorFile = "toImport/colors.onj";
+var colorFile = "src/test/res/files/toImport/colors.onj";
 
 import ({ a: colorFile }.a) as colors;
 

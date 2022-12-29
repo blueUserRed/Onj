@@ -143,9 +143,11 @@ class OnjParser private constructor(
         importPath: String,
         importPathToken: OnjToken
     ): OnjObject {
-        val fileToImport = file?.let {
-            file.parentFile.toPath().resolve(importPath).toFile()
-        } ?: Paths.get(importPath).toFile()
+        val fileToImport = Paths.get(importPath).toFile()
+//
+//        val fileToImport = file?.let {
+//            file.parentFile.toPath().resolve(importPath).toFile()
+//        } ?: Paths.get(importPath).toFile()
 
         if (fileToImport.canonicalFile in disallowedImports) throw OnjParserException.fromErrorMessage(
             importPathToken.char, code,

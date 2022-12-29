@@ -1,5 +1,5 @@
 
-import "./toImport/namedObject.onjschema" as _;
+import "src/test/res/schemas/toImport/namedObject.onjschema" as _;
 
 group: $Group,
 otherGroup: $OtherGroup

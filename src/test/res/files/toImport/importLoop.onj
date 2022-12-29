@@ -1,1 +1,1 @@
-import "../importLoop.onj" as _;
+import "src/test/res/files/importLoop.onj" as _;
