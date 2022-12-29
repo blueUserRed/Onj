@@ -1,6 +1,8 @@
 package onj.parser
 
+import onj.customization.Namespace
 import onj.customization.OnjConfig
+import onj.customization.OnjFunction
 import onj.value.*
 import java.io.File
 import java.io.IOException
@@ -17,6 +19,12 @@ class OnjParser private constructor(
     private var next = 0
 
     private val variables: MutableMap<String, OnjValue> = mutableMapOf()
+
+    private val namespaces: MutableList<Namespace> = mutableListOf()
+
+    init {
+        OnjConfig.getGlobalNamespace()?.let { namespaces.add(it) }
+    }
 
     private fun parseTopLevel(): OnjObject {
         val keys = mutableMapOf<String, OnjValue>()
@@ -156,7 +164,7 @@ class OnjParser private constructor(
             val name = nameToken.literal as String
             val right = parseTerm()
             val functionArgs = arrayOf(left, right)
-            val function = OnjConfig.getInfixFunction(name, functionArgs)
+            val function = lookupFunction(name, functionArgs)
 
             if (function == null) {
                 val argsString = functionArgs.joinToString(
@@ -186,7 +194,7 @@ class OnjParser private constructor(
             val operatorName = operator.type.toString().lowercase()
             val right = parseFactor()
             val functionArgs = arrayOf(left, right)
-            val function = OnjConfig.getFunction("operator%$operatorName", functionArgs)
+            val function = lookupFunction("operator%$operatorName", functionArgs)
                 ?: throw OnjParserException.fromErrorMessage(
                     operator.char, code,
                     "no overload for operator $operatorName and types ${left::class.simpleName}, ${right::class.simpleName}",
@@ -204,7 +212,7 @@ class OnjParser private constructor(
             val operatorName = operator.type.toString().lowercase()
             val right = parseTypeConversion()
             val functionArgs = arrayOf(left, right)
-            val function = OnjConfig.getFunction("operator%$operatorName", functionArgs)
+            val function = lookupFunction("operator%$operatorName", functionArgs)
                 ?: throw OnjParserException.fromErrorMessage(
                     operator.char, code,
                     "no overload for operator $operatorName and types ${left::class.simpleName}, ${right::class.simpleName}",
@@ -222,7 +230,7 @@ class OnjParser private constructor(
             val convertTo = convertToToken.literal as String
 
             val functionArgs = arrayOf(left)
-            val function = OnjConfig.getFunction("convert%$convertTo", functionArgs)
+            val function = lookupFunction("convert%$convertTo", functionArgs)
                 ?: throw OnjParserException.fromErrorMessage(
                     convertToToken.char, code,
                     "no overload for converting ${left::class.simpleName} to '$convertTo'",
@@ -241,7 +249,7 @@ class OnjParser private constructor(
         val right = parseNegation()
 
         val functionArgs = arrayOf(right)
-        val function = OnjConfig.getFunction("operator%unaryMinus", functionArgs)
+        val function = lookupFunction("operator%unaryMinus", functionArgs)
             ?: throw OnjParserException.fromErrorMessage(
                 operator.char, code,
                 "no overload for operator unary minus and type ${right::class.simpleName}",
@@ -434,7 +442,7 @@ class OnjParser private constructor(
         val nameToken = last()
         val name = nameToken.literal as String
         return variables[name]
-            ?:  OnjConfig.getGlobalVariable(name)
+            ?:  lookupGlobalVariable(name)
             ?:  throw OnjParserException.fromErrorMessage(
                     nameToken.char, code, "Unknown variable $name", fileName
                 )
@@ -453,7 +461,7 @@ class OnjParser private constructor(
         }
         val params = paramsList.toTypedArray()
 
-        val function = OnjConfig.getFunction(name, params)
+        val function = lookupFunction(name, params)
 
         if (function == null) {
 
@@ -472,6 +480,20 @@ class OnjParser private constructor(
         }
 
         return function(params, nameToken, code, fileName)
+    }
+
+    private fun lookupFunction(name: String, params: Array<OnjValue>): OnjFunction? {
+        for (nameSpace in namespaces) {
+            nameSpace.getFunction(name, params)?.let { return it }
+        }
+        return null
+    }
+
+    private fun lookupGlobalVariable(name: String): OnjValue? {
+        for (nameSpace in namespaces) {
+            nameSpace.getVariable(name)?.let { return it }
+        }
+        return null
     }
 
 

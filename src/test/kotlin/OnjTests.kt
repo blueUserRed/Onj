@@ -1,4 +1,3 @@
-import onj.*
 import onj.parser.OnjParser
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser

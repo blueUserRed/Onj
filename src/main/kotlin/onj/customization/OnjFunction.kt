@@ -31,17 +31,33 @@ data class OnjFunction(
         }
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (other === this) return true
-        if (other !is OnjFunction) return false
-        return other.name == this.name
-    }
-
     override fun hashCode(): Int {
         var result = name.hashCode()
         result = 31 * result + paramsSchema.hashCode()
         result = 31 * result + function.hashCode()
         return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as OnjFunction
+        if (name != other.name) return false
+        if (paramsSchema != other.paramsSchema) return false
+        return true
+    }
+
+
+    @Retention(AnnotationRetention.RUNTIME)
+    @Target(AnnotationTarget.FUNCTION)
+    annotation class RegisterOnjFunction(
+        val schema: String,
+        val type: OnjFunctionType = OnjFunctionType.NORMAL
+    ) {
+
+        enum class OnjFunctionType {
+            NORMAL, INFIX, CONVERSION, OPERATOR
+        }
     }
 
 }

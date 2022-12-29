@@ -1,7 +1,11 @@
 package onj.customization
 
 
-import onj.customization.RegisterOnjFunction.*
+import onj.customization.OnjFunction.RegisterOnjFunction
+import onj.customization.Namespace.OnjNamespace
+import onj.customization.Namespace.OnjNamespaceVariables
+import onj.customization.Namespace.OnjNamespaceDatatypes
+import onj.customization.OnjFunction.RegisterOnjFunction.*
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
 import onj.schema.*
@@ -9,39 +13,86 @@ import onj.value.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
-import kotlin.reflect.full.isSubtypeOf
-import kotlin.reflect.full.createType
-import kotlin.reflect.full.functions
-import kotlin.reflect.full.starProjectedType
+import kotlin.reflect.full.*
+import kotlin.reflect.jvm.javaField
 
 object OnjConfig {
 
-    private val globalFunctions: MutableSet<OnjFunction> = mutableSetOf()
-    private val globalCustomDataTypes: MutableMap<String, KClass<*>> = mutableMapOf()
-    private val globalVariables: MutableMap<String, OnjValue> = mutableMapOf()
+    private val namespaces: MutableMap<String, Namespace> = mutableMapOf()
 
     init {
-        StandardConfig.bindDefaultVariables()
-        registerGlobalFunctions(StandardConfig)
+        registerNameSpace("global", GlobalNamespace)
     }
 
-    fun <T> addGlobalCustomDataType(name: String, type: KClass<T>) where T : OnjValue {
-        globalCustomDataTypes[name] = type
-    }
+    fun getGlobalNamespace(): Namespace? = namespaces["global"]
 
-    fun getGlobalCustomDataType(name: String): KClass<*>? = globalCustomDataTypes[name]
-
-    fun bindGlobalVariable(name: String, value: OnjValue) {
-        globalVariables[name] = value
-    }
-
-    fun addGlobalFunction(function: OnjFunction): Unit = run { globalFunctions.add(function) }
-
-    fun registerGlobalFunctions(obj: Any) {
+    fun registerNameSpace(name: String, obj: Any) {
         val clazz = obj::class
+        val annotation = clazz.findAnnotation<OnjNamespace>()
+        annotation ?: throw RuntimeException(
+            "cannot register namespace $name because it dosen't have the OnjNamespace annotation"
+        )
+        val functions = getFunctions(obj)
+        val variables = mutableMapOf<String, OnjValue>()
+        val customDatatypes = mutableMapOf<String, KClass<*>>()
+
+        clazz
+            .memberProperties
+            .find { it.javaField?.isAnnotationPresent(OnjNamespaceVariables::class.java) ?: false }
+            ?.let {
+                val vars = it.getter.call(obj)
+                if (vars !is Map<*, *>) throw RuntimeException(
+                    "property marked with OnjNamespaceVariable must be a Map"
+                )
+                for ((key, value) in vars) {
+                    if (key !is String) throw RuntimeException(
+                        "map marked with OnjNamespaceVariable must only have strings as key"
+                    )
+                    if (value !is OnjValue) throw RuntimeException(
+                        "map marked with OnjNamespaceVariable must only have OnjValues as value"
+                    )
+                    variables[key] = value
+                }
+            }
+
+        clazz
+            .memberProperties
+            .find { it.javaField?.isAnnotationPresent(OnjNamespaceDatatypes::class.java) ?: false }
+            ?.let {
+                val types = it.getter.call(obj)
+                if (types !is Map<*, *>) throw RuntimeException(
+                    "property marked with OnjNamespaceDatatypes must be a Map"
+                )
+                for ((key, value) in types) {
+                    if (key !is String) throw RuntimeException(
+                        "map marked with OnjNamespaceDatatypes must only have strings as key"
+                    )
+                    if (value !is KClass<*>) throw RuntimeException(
+                        "map marked with OnjNamespaceDatatypes must only have KClasses as value"
+                    )
+                    if (!value.isSubclassOf(OnjValue::class)) throw RuntimeException(
+                        "map marked with OnjNamespaceDatatypes must only have values that extend OnjValue"
+                    )
+                    customDatatypes[key] = value
+                }
+            }
+
+        if (namespaces.containsKey(name)) throw RuntimeException(
+            "cannot register namespace $name because a namespace with that name already exists"
+        )
+        namespaces[name] = Namespace(
+            name,
+            variables,
+            functions,
+            customDatatypes
+        )
+    }
+
+    private fun getFunctions(obj: Any): Set<OnjFunction> {
+        val clazz = obj::class
+        val functions = mutableSetOf<OnjFunction>()
         for (function in clazz.functions) {
-            val annotation = function.annotations.find { it is RegisterOnjFunction } ?: continue
-            annotation as RegisterOnjFunction
+            val annotation = function.findAnnotation<RegisterOnjFunction>() ?: continue
             assertThatFunctionCanBeRegistered(obj, annotation.type, function)
             val schemaObj = try {
                 OnjSchemaParser.parse("params: ${annotation.schema}")
@@ -58,8 +109,9 @@ object OnjConfig {
                 schema,
                 annotation.type == OnjFunctionType.INFIX
             ) { function.call(obj, *it) as OnjValue }
-            addGlobalFunction(onjFunction)
+            functions.add(onjFunction)
         }
+        return functions
     }
 
     private fun assertThatFunctionCanBeRegistered(obj: Any, type: OnjFunctionType, function: KFunction<*>) {
@@ -124,16 +176,6 @@ object OnjConfig {
 
     }
 
-    fun getGlobalVariable(name: String): OnjValue? = globalVariables[name]
 
-    fun getFunction(name: String, args: Array<OnjValue>): OnjFunction? = globalFunctions.firstOrNull {
-        return@firstOrNull it.name == name && it.paramsSchema.check(OnjArray(args.toList())) == null
-    }
-
-    fun getInfixFunction(name: String, args: Array<OnjValue>): OnjFunction? = globalFunctions
-        .filter { it.canBeUsedAsInfix }
-        .firstOrNull {
-            return@firstOrNull it.name == name && it.paramsSchema.check(OnjArray(args.toList())) == null
-        }
 
 }

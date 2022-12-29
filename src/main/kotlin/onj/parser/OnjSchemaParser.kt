@@ -1,5 +1,7 @@
 package onj.parser
 
+import onj.customization.Namespace
+import onj.customization.OnjConfig
 import onj.schema.*
 import java.io.File
 import java.io.IOException
@@ -17,6 +19,12 @@ class OnjSchemaParser internal constructor(
     private val variables: MutableMap<String, OnjSchema> = mutableMapOf()
     private val namedObjectGroups: MutableMap<String, List<OnjSchemaNamedObject>> = mutableMapOf()
     private val namedObjectTokensToCheck: MutableList<OnjToken> = mutableListOf()
+
+    private val namespaces: MutableList<Namespace> = mutableListOf()
+
+    init {
+        OnjConfig.getGlobalNamespace()?.let { namespaces.add(it) }
+    }
 
     private fun parseTopLevel(): OnjSchema {
         val keys = mutableMapOf<String, OnjSchema>()
@@ -234,9 +242,11 @@ class OnjSchemaParser internal constructor(
             OnjTokenType.IDENTIFIER -> {
                 val identifierToken = last()
                 val identifier = identifierToken.literal as String
-                variables[identifier] ?: throw OnjParserException.fromErrorMessage(
-                    identifierToken.char, code, "Unknown variable $identifier", fileName
-                )
+                variables[identifier]
+                    ?:  lookupCustomDatatype(identifier)
+                    ?:  throw OnjParserException.fromErrorMessage(
+                            identifierToken.char, code, "Unknown variable $identifier", fileName
+                        )
             }
             OnjTokenType.DOLLAR -> {
                 val nameToken = consume(OnjTokenType.IDENTIFIER)
@@ -363,6 +373,12 @@ class OnjSchemaParser internal constructor(
         return LiteralOnjSchemaArray(values, false)
     }
 
+    private fun lookupCustomDatatype(name: String): OnjSchema? {
+        for (namespace in namespaces) {
+            namespace.getCustomDataType(name)?.let { OnjSchemaCustomDataType(name, it, false) }
+        }
+        return null
+    }
 
     private fun end(): Boolean = next >= tokens.size || tokens[next].type == OnjTokenType.EOF
 
