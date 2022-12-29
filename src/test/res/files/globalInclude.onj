@@ -1,0 +1,8 @@
+var obj = {
+    hi: 1,
+    test: "abc"
+};
+
+key: "value",
+...obj,
+otherKey: "value"

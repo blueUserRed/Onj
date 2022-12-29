@@ -63,6 +63,28 @@ class OnjParser private constructor(
                 return tryConsume(OnjTokenType.COMMA)
             }
 
+            OnjTokenType.DOT -> {
+                consume(OnjTokenType.DOT)
+                consume(OnjTokenType.DOT)
+                val includeToken = peek()
+                val toInclude = parseLiteral()
+                consume(OnjTokenType.COMMA)
+                if (!toInclude.isOnjObject()) throw OnjParserException.fromErrorMessage(
+                    includeToken.char, code,
+                    "Value included using the triple" +
+                            " dot must be of type Object, fount ${toInclude::class.simpleName}",
+                    fileName
+                )
+                for ((key, value) in (toInclude as OnjObject).value) {
+                    if (keys.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                        includeToken.char, code,
+                        "Key $key included using the triple dot was already declared",
+                        fileName
+                    )
+                    keys[key] = value
+                }
+            }
+
             else -> throw OnjParserException.fromErrorToken(
                 token, "top level declaration", code, fileName
             )

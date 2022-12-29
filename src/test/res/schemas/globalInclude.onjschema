@@ -1,0 +1,8 @@
+var obj = {
+    key: string,
+    test: string
+};
+
+hi: int,
+...obj,
+otherKey: string

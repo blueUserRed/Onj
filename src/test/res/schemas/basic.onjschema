@@ -13,4 +13,4 @@ obj2: {
 
 twoElements: boolean[2],
 
-any: { ...* }
+any: { ...* },

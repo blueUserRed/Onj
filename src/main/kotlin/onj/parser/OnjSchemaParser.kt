@@ -3,6 +3,7 @@ package onj.parser
 import onj.customization.Namespace
 import onj.customization.OnjConfig
 import onj.schema.*
+import onj.value.OnjObject
 import java.io.File
 import java.io.IOException
 import java.nio.file.Paths
@@ -80,7 +81,7 @@ class OnjSchemaParser internal constructor(
 
                 val (key, value, optional) = parseKeyValuePair()
                 val keysToCheck = if (optional) optionalKeys else keys
-                if (keysToCheck.containsKey(key)) {
+                if (keysToCheck.containsKey(key) || optionalKeys.containsKey(key)) {
                     throw OnjParserException.fromErrorMessage(
                         token.char, code,
                         "Key $key was already defined",
@@ -89,6 +90,36 @@ class OnjSchemaParser internal constructor(
                 }
                 keysToCheck[key] = value
                 return tryConsume(OnjTokenType.COMMA)
+            }
+
+            OnjTokenType.DOT -> {
+                consume(OnjTokenType.DOT)
+                consume(OnjTokenType.DOT)
+                val includeToken = peek()
+                val toInclude = parseLiteral()
+                consume(OnjTokenType.COMMA)
+                if (toInclude !is OnjSchemaObject) throw OnjParserException.fromErrorMessage(
+                    includeToken.char, code,
+                    "Value included using the triple" +
+                            " dot must be of type Object, fount ${toInclude::class.simpleName}",
+                    fileName
+                )
+                for ((key, value) in toInclude.keys) {
+                    if (keys.containsKey(key) || optionalKeys.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                        includeToken.char, code,
+                        "Key $key included using the triple dot was already declared",
+                        fileName
+                    )
+                    keys[key] = value
+                }
+                for ((key, value) in toInclude.optionalKeys) {
+                    if (keys.containsKey(key) || optionalKeys.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                        includeToken.char, code,
+                        "Key $key included using the triple dot was already declared",
+                        fileName
+                    )
+                    optionalKeys[key] = value
+                }
             }
 
             else -> throw OnjParserException.fromErrorToken(
@@ -289,7 +320,7 @@ class OnjSchemaParser internal constructor(
                 )
 
                 for ((key, value) in toInclude.keys) {
-                    if (keys.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                    if (keys.containsKey(key) || optionalKeys.containsKey(key)) throw OnjParserException.fromErrorMessage(
                         token.char, code,
                         "key '$key' included using the triple-dot is already defined in the object",
                         fileName
@@ -297,7 +328,7 @@ class OnjSchemaParser internal constructor(
                     keys[key] = value
                 }
                 for ((key, value) in toInclude.optionalKeys) {
-                    if (optionalKeys.containsKey(key)) throw OnjParserException.fromErrorMessage(
+                    if (optionalKeys.containsKey(key) || optionalKeys.containsKey(key)) throw OnjParserException.fromErrorMessage(
                         token.char, code,
                         "key '$key' included using the triple-dot is already defined in the object",
                         fileName
@@ -315,13 +346,12 @@ class OnjSchemaParser internal constructor(
             consume(OnjTokenType.IDENTIFIER, OnjTokenType.STRING)
             val keyToken = last()
             val (key, value, optional) = parseKeyValuePair()
-            val keysToCheck = if (optional) optionalKeys else keys
 
-            if (keysToCheck.containsKey(key)) throw OnjParserException.fromErrorMessage(
+            if (keys.containsKey(key) || optionalKeys.containsKey(key)) throw OnjParserException.fromErrorMessage(
                 keyToken.char, code, "key $key was already defined", fileName
             )
 
-            keysToCheck[key] = value
+            if (optional) optionalKeys[key] = value else keys[key] = value
 
             if (!tryConsume(OnjTokenType.COMMA)) {
                 consume(OnjTokenType.R_BRACE)
@@ -375,7 +405,7 @@ class OnjSchemaParser internal constructor(
 
     private fun lookupCustomDatatype(name: String): OnjSchema? {
         for (namespace in namespaces) {
-            namespace.getCustomDataType(name)?.let { OnjSchemaCustomDataType(name, it, false) }
+            namespace.getCustomDataType(name)?.let { return OnjSchemaCustomDataType(name, it, false) }
         }
         return null
     }

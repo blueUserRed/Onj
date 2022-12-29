@@ -91,6 +91,16 @@ object OnjTests : Test() {
         fileWithSchema("namedObjects")
     }
 
+    @TestCase
+    fun testGlobalInclude() {
+        val obj = fileWithSchema("globalInclude")
+        obj as OnjObject
+        assertEquals(
+            obj.get<String>("test"),
+            "abc"
+        )
+    }
+
     private fun onjFile(name: String): OnjValue = OnjParser.parseFile("src/test/res/files/$name.onj")
     private fun invalidOnjFile(name: String): OnjValue = OnjParser.parseFile("src/test/res/files/invalid/$name.onj")
     private fun onjSchemaFile(name: String): OnjSchema = OnjSchemaParser.parseFile("src/test/res/schemas/$name.onjschema")
