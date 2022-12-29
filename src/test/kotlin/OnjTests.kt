@@ -16,12 +16,14 @@ object OnjTests : Test() {
 
     @TestCase
     fun testBasic() {
-        fileWithSchema("basic")
+        val obj = fileWithSchema("basic")
+        OnjParser.parse(obj.toString())
     }
 
     @TestCase
     fun testVars() {
-        fileWithSchema("vars")
+        val obj = fileWithSchema("vars")
+        OnjParser.parse(obj.toString())
     }
 
     @TestCase

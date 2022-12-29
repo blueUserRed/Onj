@@ -132,7 +132,7 @@ open class OnjObject internal constructor(override val value: Map<String, OnjVal
             builder
                 .append("$key: ")
                 .append(entry.value.toString(1))
-                .append("\n")
+                .append(",\n")
         }
         return builder.toString()
     }
@@ -147,7 +147,7 @@ open class OnjObject internal constructor(override val value: Map<String, OnjVal
             builder
                 .append("$key: ")
                 .append(entry.value.toString(indentationLevel + 1))
-                .append("\n")
+                .append(",\n")
         }
         for (i in 1 until indentationLevel) builder.append("    ")
         builder.append("}")
@@ -249,7 +249,7 @@ class OnjArray(override val value: List<OnjValue>) : OnjValue() {
             for (part in value) {
                 builder
                     .append(part.toString(indentationLevel + 1))
-                    .append(" ")
+                    .append(", ")
             }
             builder.append("]")
             return builder.toString()
@@ -262,7 +262,7 @@ class OnjArray(override val value: List<OnjValue>) : OnjValue() {
             for (i in 1..indentationLevel) builder.append("    ")
             builder
                 .append(part.toString(indentationLevel + 1))
-                .append("\n")
+                .append(",\n")
         }
         for (i in 1 until indentationLevel) builder.append("    ")
         builder.append("]")
