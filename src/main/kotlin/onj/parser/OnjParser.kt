@@ -201,7 +201,7 @@ class OnjParser private constructor(
             val name = nameToken.literal as String
             val right = parseTerm()
             val functionArgs = arrayOf(left, right)
-            val function = lookupFunction(name, functionArgs)
+            val function = lookupInfixFunction(name, functionArgs)
 
             if (function == null) {
                 val argsString = functionArgs.joinToString(
@@ -522,6 +522,13 @@ class OnjParser private constructor(
     private fun lookupFunction(name: String, params: Array<OnjValue>): OnjFunction? {
         for (nameSpace in namespaces) {
             nameSpace.getFunction(name, params)?.let { return it }
+        }
+        return null
+    }
+
+    private fun lookupInfixFunction(name: String, params: Array<OnjValue>): OnjFunction? {
+        for (nameSpace in namespaces) {
+            nameSpace.getInfixFunction(name, params)?.let { return it }
         }
         return null
     }
