@@ -1,10 +1,18 @@
+# Onj
+
+<br>
+<br>
 
 ### What is Onj?
 Onj is a simple language with a json-like syntax used mainly for
 writing config files. It is mainly intended for files written by a
 human and read by a computer. It's file extension is ``onj``.
 
-### syntax
+<br>
+
+### Syntax
+
+<br>
 
 #### top-level
 The top level of an .onj file is always an object consisting of 
@@ -20,7 +28,9 @@ nullValue: null,
 ````
 Key-value pairs are separated by commas, trailing commas are allowed.
 
-#### data types
+<br>
+
+#### Data types
 
 Onj supports the following datatypes:
  - boolean
@@ -30,6 +40,8 @@ Onj supports the following datatypes:
  - objects
  - arrays
  - null-type
+
+<br>
 
 #### nested objects
 
@@ -46,6 +58,8 @@ object: {
 }
 ````
 
+<br>
+
 #### arrays
 
 Arrays are declared using square brackets containing values
@@ -57,6 +71,8 @@ arr: [
 ]
 ````
 
+<br>
+
 #### quoted keys
 
 Keys containing special characters have to be wrapped in quotes.
@@ -65,6 +81,8 @@ Keys containing special characters have to be wrapped in quotes.
 "I contain Spaces!": true,
 '123 I start with a number!': true
 ````
+
+<br>
 
 #### comments
 
@@ -85,7 +103,11 @@ a block comment
 unterminaded block comment
 ````
 
+<br>
+
 ### variables
+
+<br>
 
 #### declaring variables
 
@@ -109,6 +131,8 @@ arr: [
     obj
 ]
 ````
+
+<br>
 
 #### the triple-dot syntax
 
@@ -152,6 +176,8 @@ fruitSaladTwo: [
 ]
 ````
 
+<br>
+
 ### calculations
 
 Onj supports simple mathematical expressions.
@@ -167,6 +193,8 @@ Onj does integer division when both operands are integers. For all
 operations the following rule applies: If one operand is a float,
 the result is a float.
 
+<br>
+
 #### type conversions
 
 By putting a hash and an identifier behind a value it can be
@@ -179,6 +207,8 @@ aFloat: anInt#float,
 aString: anInt#string,
 toFloatToString: anInt#float#string
 ````
+
+<br>
 
 ### the variable access syntax
 
@@ -237,8 +267,13 @@ dynamic2: object.(strings.(object.a))
 
 ````
 
-### Imports
+<br>
 
+### Imports
+<!--
+    TODO: explain imports in schema files separately because
+    of named object
+-->
 Imports can be used to split up large files or to extract structures
 used across multiple files.
 
@@ -263,6 +298,8 @@ var paths = [
 import (paths.0) as imported;
 ````
 
+<br>
+
 ### Functions
 
 Onj has the sqrt, pow and in functions built-in.
@@ -281,10 +318,14 @@ alsoNine: pow(3, 2),
 isTrue: 1 in [ 1, 2, 3, 4 ]
 ````
 
+<br>
+
 ### Schemas
 
 Schemas can be used to validate the structure of a .onj file.
 The file extension for schema files is typically ``.onjschema``.
+
+<br>
 
 #### Syntax
 
@@ -306,6 +347,8 @@ anObject: {
 Objects must contain exactly the same keys with matching datatypes
 and cannot contain keys not specified in the schema. The same 
 applies for array literals.
+
+<br>
 
 #### special types and syntax
 
@@ -341,7 +384,110 @@ nullableArr: [ string, int ]?,
 objectArr: { x: float, y: float }[]
 ````
 
+<br>
+
+### Named Objects
+
+To better explain why named objects are needed, I'll start with
+the problem they are trying to solve. Imagine you want to represent
+an ui in an onj file. You need different widgets (labels, images)
+and groups (HBoxes, VBoxes), however, depending on the widget they
+will need different keys. While a label will need a 'text' key, an
+image will need a 'image-path' key. One way you could implement this
+is the following:
+
+_screen.onj_
+````json5
+root: {
+    type: "VBox",
+    children: [
+        {
+            type: "label",
+            text: "I'm a label!",
+            font: "Comic Sans"
+        },
+        {
+            type: "image",
+            imagePath: "path/to/image.png"
+        }
+    ]
+}
+````
+
+_screen.onjschema_
+````json5
+root: {
+    type: string,
+    // Because each widget requires different keys, we need to
+    // allow all keys
+    ...*
+}
+````
+
+However, the above approach is not very good, because the schema
+file is essentially worthless and the validation would have to be
+almost completely done by the programmer.
+
+Named objects try to solve this problem by giving names to objects
+and requiring different keys depending on the name. Additionally,
+multiple named objects can be grouped together in a named object
+group, that can than be used as a type in your schema file.
+
+Here is the better solution using named objects:
+
+_screen.onj_
+````json5
+root: $VBox { // declares an object with the name VBox 
+    children: [
+        $Label {
+            type: "label",
+            text: "I'm a label!",
+            font: "Comic Sans"     
+        },
+        $Image {
+            imagePath: "path/to/image.png"
+        }
+    ]
+}
+````
+
+_screen.onjschema_
+````json5
+
+$Widget { // declares a named object group named Widget
+    
+    $HBox {
+        // the name of a object group can be used like a datatype
+        // to allow any of the objects in it
+        children: $Widget[]
+    }
+    
+    VBox {
+        children: $Widget[]
+    }
+
+    $Label {
+        type: string
+        text: string
+        font: string
+    }
+
+    $Image {
+        imagePath: string
+    }
+}
+
+root: $Widget
+
+````
+Note: when declaring multiple named object groups the object names
+need to be unique even across different groups.
+
+<br>
+
 ### Interacting with onj files from kotlin
+
+<br>
 
 #### parsing onj files
 
@@ -371,6 +517,8 @@ val structure = try {
 }
 ````
 
+<br>
+
 #### Matching with a schema
 
 ````kotlin
@@ -388,6 +536,8 @@ val result = schema.check(onj)
 // casting is now safe
 onj as OnjObject
 ````
+
+<br>
 
 #### reading values from a parsed object
 
@@ -418,6 +568,8 @@ val string = onj.get<String>("myString")
 val onjInt = onj.get<Long>("myInt")
 ````
 
+<br>
+
 #### reading values from a parsed array
 
 ````kotlin
@@ -439,5 +591,86 @@ arr
 val first = arr[0] as OnjString
 ````
 
+<br>
+
+#### building objects or arrays from kotlin
+
+````kotlin
+// Objects can be created using the buildOnjObject function.
+
+val obj = buildOnjObject {
+    // here, the with function can be used to declare a key
+    "myKey" with OnjString("someValue")
+    
+    // simple values can be converted to OnjValues automatically
+    "myString" with "aString"
+    "myBool" with true
+    
+    // includes all keys of another object or of a Map<String, OnjValue>
+    includeAll(anotherObject)
+    
+    "nestedObject" with buildOnjObject {
+        "key" with 34
+    }
+    
+    // Arrays or Collections will be automatically converted
+    // to OnjArrays, including the contained values
+    "arr" with arrayOf(
+        true, "string", null
+    )
+}
+
+// Arrays can be created using the .toOnjArray extension function
+// on Collection<*> and Array<*>. Like buildOnjObject this function
+// will attempt to convert values to OnjValues
+val arr = arrayOf(true, false, "string").toOnjArray()
+
+// a similar functions for objects exists on Map<String, *>
+val obj = mapOf(
+    "key" to true,
+    "key2" to "string"
+).toOnjObject()
+````
+
+<br>
+
 ### namespaces and Customization
+
+Namespaces allow adding custom functions, operator overloads, 
+conversions, global variables and datatypes.
+
+<br>
+
+#### declaring a namespace
+
+Namespaces are typically objects and annotated with the 
+``@OnjNameSpace`` annotation. 
+
+````kotlin
+@OnjNameSpace
+object MyNamespace {
+    
+    // Functions are registered using the @RegisterOnjFunction
+    // annotation. This annotation takes a parameter containing a
+    // string containing an onjschema with a key named 'params'
+    // and a value of type array. This array tells the OnjParser
+    // which types this functions takes and should match the actual
+    // signature of the function. The function can only take types
+    // that extend OnjValue and must return a type that extends
+    // OnjValue as well.
+    @RegisterOnjFunction(schema = "params: [string]")
+    fun greeting(name: OnjString): OnjString {
+        return OnjString("hello, ${name.value}!")
+    }
+    
+}
+````
 TODO
+
+register the namespace:
+
+````kotlin
+fun init() {
+    OnjConfig.registerNameSpace(MyNamespace, "MyNamespace")
+}
+````

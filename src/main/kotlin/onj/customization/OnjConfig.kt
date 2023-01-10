@@ -28,7 +28,7 @@ object OnjConfig {
 
     fun getNamespace(name: String): Namespace? = namespaces[name]
 
-    fun registerNameSpace(name: String, obj: Any) {
+    fun registerNameSpace(name: String, obj: Any) { //TODO: fix naming
         val clazz = obj::class
         val annotation = clazz.findAnnotation<OnjNamespace>()
         annotation ?: throw RuntimeException(

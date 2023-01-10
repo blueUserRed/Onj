@@ -20,12 +20,6 @@ object GlobalNamespace {
         "infinity" to OnjFloat(Double.POSITIVE_INFINITY),
     )
 
-    @OnjNamespaceDatatypes
-    val datatypes: Map<String, KClass<*>> = mapOf(
-        "Test" to OnjString::class
-    )
-
-
     @RegisterOnjFunction(schema = "params: float[2]", type = OnjFunctionType.INFIX)
     fun pow(x: OnjFloat, to: OnjFloat): OnjFloat = OnjFloat(x.value.pow(to.value))
 
