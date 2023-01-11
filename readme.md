@@ -134,6 +134,13 @@ arr: [
 
 <br>
 
+#### global variables
+
+The following global variables are provided by default: ``NaN``,
+``infinity``.
+
+<br>
+
 #### the triple-dot syntax
 
 When objects or arrays only share some values and not others,
@@ -456,13 +463,14 @@ _screen.onjschema_
 
 $Widget { // declares a named object group named Widget
     
+    // declares a object with name HBox in the Widget group
     $HBox {
         // the name of a object group can be used like a datatype
         // to allow any of the objects in it
         children: $Widget[]
     }
     
-    VBox {
+    $VBox {
         children: $Widget[]
     }
 
@@ -563,8 +571,8 @@ val string = onj.get<OnjString>("myString").value
 // the .get function instead, which will then access .value itself
 val string = onj.get<String>("myString")
 
-// Be careful! Because onj uses 64-bit datatypes, a OnjInt will be
-// a Long, and a OnjFloat will be a Double
+// Be careful! Because onj uses 64-bit datatypes, an OnjInt will be
+// a Long, and an OnjFloat will be a Double
 val onjInt = onj.get<Long>("myInt")
 ````
 
@@ -632,7 +640,17 @@ val obj = mapOf(
 ).toOnjObject()
 ````
 
-<br>
+The OnjValue class also provides functions to convert the structure
+back to a string or even a json string. However, when reading a 
+file and writing it again, things like variables, imports and
+calculations are lost.
+
+````kotlin
+val onj = OnjParser.parseFile("file.onj")
+
+val asString = onj.toString()
+val asJson = onj.toJsonString()
+````
 
 ### namespaces and Customization
 
@@ -644,20 +662,25 @@ conversions, global variables and datatypes.
 #### declaring a namespace
 
 Namespaces are typically objects and annotated with the 
-``@OnjNameSpace`` annotation. 
+``@OnjNameSpace`` annotation.
+
+<br>
+
+#### declaring functions
+
+Functions are registered using the ``@RegisterOnjFunction``
+annotation. This annotation takes a parameter containing a
+string containing an onjschema with a key named 'params'
+and a value of type array. This array tells the OnjParser
+which types this functions takes and should match the actual
+signature of the function. The function can only take types
+that extend OnjValue and must return a type that extends
+OnjValue as well.
 
 ````kotlin
 @OnjNameSpace
 object MyNamespace {
     
-    // Functions are registered using the @RegisterOnjFunction
-    // annotation. This annotation takes a parameter containing a
-    // string containing an onjschema with a key named 'params'
-    // and a value of type array. This array tells the OnjParser
-    // which types this functions takes and should match the actual
-    // signature of the function. The function can only take types
-    // that extend OnjValue and must return a type that extends
-    // OnjValue as well.
     @RegisterOnjFunction(schema = "params: [string]")
     fun greeting(name: OnjString): OnjString {
         return OnjString("hello, ${name.value}!")
@@ -665,12 +688,141 @@ object MyNamespace {
     
 }
 ````
-TODO
 
-register the namespace:
+The ``@RegisterOnjFunction`` annotation also takes a second,
+optional parameter that indicates the type of function. The default
+type is ``normal``, but it can also be set to ``infix``,
+``operator`` or ``conversion``.
+
+``infix`` signals that a function can be used as an infix-function
+(callable using the ``param1 function param2`` syntax). The function
+must take exactly two parameters.
+
+``operator`` indicates that the function overloads an operator.
+It's name must be one of: plus, minus, star, div. It must take
+exactly two parameters.
+
+``conversion`` indicates that the function can be called using the
+conversion syntax (``value#function``). It must take exactly one
+parameter.
+
+<br>
+
+#### adding global variables
+
+To add custom global variables to the namespace create a field of
+type Map<String, OnjValue> and annotate it with the
+``@OnjNamespaceVariables`` annotation. This map contains the
+variable names as keys and the value of the variable as value.
+
+````kotlin
+@OnjNameSpace
+object MyNamespace {
+
+    @OnjNamespaceVariables
+    val variables: Map<String, OnjValue> = mapOf(
+        "variable" to OnjString("value")
+    )
+    
+}
+````
+
+<br>
+
+#### adding custom datatypes
+
+To add a custom datatype, first the class representing it must be
+created. It has to extend OnjValue.
+
+````kotlin
+class OnjColor(
+    // the abstract field 'value' must be overridden
+    override val value: Color // Color is an imaginary class
+) : OnjValue() {
+    
+    // OnjValue requires you to override two toString functions
+    // the toString functions should always return valid onj, that 
+    // when parsed results in the same value.
+    // If the resulting string contains newlines, it should take the 
+    // indentationLevel parameter into account.
+    
+    override fun toString(): String = "color('${value.toHexString()}')"
+    override fun toString(indentiationLevel: Int): String = toString()
+    
+    // OnjValue also requires you to override two toJsonString functions
+    // These functions should always return valid json that in some
+    // way represents the type
+    // If the resulting string contains newlines, it should take the 
+    // indentationLevel parameter into account.
+    
+    override fun toJsonString(): String = "'${value.toHexString()}'"
+    override fun toJsonString(indentationLevel: Int): String = toJsonString()
+}
+
+````
+
+To make the type available in onjschemas you need to go into your
+namespace and create a field of type Map<String, KClass<*>> and
+annotate it with the ``@OnjNamespaceDatatypes``. The Map contains the 
+name of the datatype as the key and the KClass as the value.
+
+````kotlin
+@OnjNameSpace
+object MyNamespace {
+
+    @OnjNamespaceDatatypes
+    val datatypes: Map<String, KClass<*>> = mapOf(
+        "Color" to OnjColor::class
+    )
+    
+}
+````
+
+Lastly, you need a way to actually create a value of the added type.
+This is commonly done using a function.
+
+````kotlin
+@OnjNameSpace
+object MyNamespace {
+
+    @RegisterOnjFunction(schema = "params: [string]")
+    fun color(hex: OnjString): OnjColor {
+        return OnjColor(Color.fromHex(hex.value))
+    }
+    
+}
+````
+
+<br>
+
+#### registering the namespace 
 
 ````kotlin
 fun init() {
     OnjConfig.registerNameSpace(MyNamespace, "MyNamespace")
 }
+````
+
+<br>
+
+#### using the namespace
+
+To include the namespace in an onj or onjschema file, the ``use``
+keyword is used.
+
+_file.onj_
+````json5
+use MyNamespace;
+
+myColor: color("00ff00"),
+myGlobal: variable,
+myFunction: greeting("reader")
+````
+_file.onjschema_
+````json5
+use MyNamespace;
+
+myColor: Color,
+myGlobal: string,
+myFunction: string
 ````
