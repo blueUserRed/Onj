@@ -123,7 +123,7 @@ class OnjNull : OnjValue() {
 /**
  * represents an object (kotlin type is [Map])
  */
-open class OnjObject internal constructor(override val value: Map<String, OnjValue>) : OnjValue() {
+open class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
 
     override fun toString(): String {
         val builder = StringBuilder()
@@ -338,7 +338,7 @@ class OnjArray(override val value: List<OnjValue>) : OnjValue() {
     }
 }
 
-class OnjNamedObject internal constructor(val name: String, value: Map<String, OnjValue>) : OnjObject(value) {
+class OnjNamedObject(val name: String, value: Map<String, OnjValue>) : OnjObject(value) {
 
     override fun toString(): String = toString(0)
 
