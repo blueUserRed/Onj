@@ -6,6 +6,8 @@ class OnjObjectBuilderDSL internal constructor() {
 
     private val values: MutableMap<String, OnjValue> = mutableMapOf()
 
+    private var name: String? = null
+
     infix fun String.with(value: Any?) {
         if (values.containsKey(this)) throw OnjObjectBuilderDSLException("duplicate key '$this'")
         values[this] = convertToOnjValue(value)
@@ -29,8 +31,13 @@ class OnjObjectBuilderDSL internal constructor() {
         }
     }
 
+    fun name(name: String?) {
+        this.name = name
+    }
+
     internal fun build(): OnjObject {
-        return OnjObject(values)
+        val name = name ?: return OnjObject(values)
+        return OnjNamedObject(name, values)
     }
 
     class OnjObjectBuilderDSLException(message: String) : java.lang.RuntimeException(message)
