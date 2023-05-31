@@ -27,17 +27,26 @@ abstract class OnjValue {
 
     override fun hashCode(): Int = value.hashCode()
 
-    /**
-     * converts the structure to a valid onj string. (variables, comments, etc. are lost)
-     */
-    abstract override fun toString(): String
-    abstract fun toString(indentationLevel: Int): String
+    override fun toString(): String {
+        val info = ToStringInformation(json = false, minified = false)
+        stringify(info)
+        return info.builder.toString()
+    }
 
-    /**
-     * converts the structure to a valid json-string
-     */
-    abstract fun toJsonString(): String
-    abstract fun toJsonString(indentationLevel: Int): String
+    abstract fun stringify(info: ToStringInformation)
+
+    data class ToStringInformation(
+        val indent: String = "    ",
+        val json: Boolean,
+        val minified: Boolean,
+        val indentationLevel: Int = 0,
+        val builder: StringBuilder = StringBuilder()
+    ) {
+        fun withIndentationLevel(indentationLevel: Int) = ToStringInformation(
+            indent, json, minified, indentationLevel, builder
+        )
+    }
+
 }
 
 /**
@@ -45,16 +54,10 @@ abstract class OnjValue {
  */
 class OnjInt(override val value: Long) : OnjValue() {
 
-    override fun toString(): String = toString(0)
-
-    override fun toString(indentationLevel: Int): String {
-        return value.toString()
+    override fun stringify(info: ToStringInformation) {
+        info.builder.append(value.toString())
     }
 
-
-
-    override fun toJsonString(indentationLevel: Int) = value.toString()
-    override fun toJsonString(): String = value.toString()
 }
 
 /**
@@ -62,23 +65,22 @@ class OnjInt(override val value: Long) : OnjValue() {
  */
 class OnjFloat(override val value: Double) : OnjValue() {
 
-    override fun toString(): String = toString(0)
-
-    override fun toString(indentationLevel: Int): String {
-        return if (value == Double.POSITIVE_INFINITY) "Pos_Infinity"
-        else if (value == Double.NEGATIVE_INFINITY) "Neg_Infinity"
-        else if (value.isNaN()) "NaN"
-        else value.toString()
+    override fun stringify(info: ToStringInformation) {
+        info.builder.append(if (!info.json) {
+            when (value) {
+                Double.POSITIVE_INFINITY -> "infinity"
+                Double.NEGATIVE_INFINITY -> "-infinity"
+                else -> if (value.isNaN()) "NaN" else value.toString()
+            }
+        } else {
+            when (value) {
+                Double.POSITIVE_INFINITY -> "Infinity"
+                Double.NEGATIVE_INFINITY -> "-Infinity"
+                else -> if (value.isNaN()) "NaN" else value.toString()
+            }
+        })
     }
 
-    override fun toJsonString(indentationLevel: Int): String {
-        return if (value == Double.POSITIVE_INFINITY) "Infinity"
-        else if (value == Double.NEGATIVE_INFINITY) "-Infinity"
-        else if (value.isNaN()) "NaN"
-        else value.toString()
-    }
-
-    override fun toJsonString(): String = toJsonString(0)
 }
 
 /**
@@ -86,14 +88,13 @@ class OnjFloat(override val value: Double) : OnjValue() {
  */
 class OnjString(override val value: String) : OnjValue() {
 
-    override fun toString(indentationLevel: Int): String = "'$value'"
-    override fun toString(): String = "'$value'"
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-    override fun toJsonString(): String = "\"$value\""
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-    override fun toJsonString(indentationLevel: Int): String = "\"$value\""
+    override fun stringify(info: ToStringInformation) {
+        val cleaned = value
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+        info.builder.append(if (info.json) "\"$cleaned\"" else "'$cleaned'")
+    }
+
 }
 
 /**
@@ -101,10 +102,9 @@ class OnjString(override val value: String) : OnjValue() {
  */
 class OnjBoolean(override val value: Boolean) : OnjValue() {
 
-    override fun toString(): String = value.toString()
-    override fun toString(indentationLevel: Int): String = value.toString()
-    override fun toJsonString(): String = value.toString()
-    override fun toJsonString(indentationLevel: Int): String = value.toString()
+    override fun stringify(info: ToStringInformation) {
+        info.builder.append(value.toString())
+    }
 }
 
 /**
@@ -114,10 +114,9 @@ class OnjNull : OnjValue() {
 
     override val value: Any? = null
 
-    override fun toString(): String = "null"
-    override fun toString(indentationLevel: Int): String = "null"
-    override fun toJsonString(): String = "null"
-    override fun toJsonString(indentationLevel: Int): String = "null"
+    override fun stringify(info: ToStringInformation) {
+        info.builder.append("null")
+    }
 }
 
 /**
@@ -126,54 +125,88 @@ class OnjNull : OnjValue() {
 open class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
 
     override fun toString(): String {
-        val builder = StringBuilder()
+        val info = ToStringInformation(json = false, minified = false)
         for (entry in value.entries) {
             val key = if (isValidKey(entry.key)) entry.key else "'${entry.key}'"
-            builder
-                .append("$key: ")
-                .append(entry.value.toString(1))
-                .append(",\n")
+            info.builder.append("$key: ")
+            entry.value.stringify(info.withIndentationLevel(1))
+            info.builder.append(",\n")
         }
-        return builder.toString()
+        return info.builder.toString()
     }
 
-    override fun toString(indentationLevel: Int): String {
-        val builder = StringBuilder()
-        builder.append("{")
-        builder.append("\n")
+    fun toMinifiedString(): String {
+        val info = ToStringInformation(json = false, minified = true)
         for (entry in value.entries) {
-            for (i in 1..indentationLevel) builder.append("    ")
             val key = if (isValidKey(entry.key)) entry.key else "'${entry.key}'"
-            builder
-                .append("$key: ")
-                .append(entry.value.toString(indentationLevel + 1))
-                .append(",\n")
+            info.builder.append("$key:")
+            entry.value.stringify(info.withIndentationLevel(1))
+            info.builder.append(",")
         }
-        for (i in 1 until indentationLevel) builder.append("    ")
-        builder.append("}")
-        return builder.toString()
+        return info.builder.toString()
     }
 
-    override fun toJsonString(indentationLevel: Int): String {
-        val builder = StringBuilder()
+    fun toJsonString(): String {
+        val info = ToStringInformation(json = true, minified = false)
+        stringify(info)
+        return info.builder.toString()
+    }
+
+    fun toMinifiedJsonString(): String {
+        val info = ToStringInformation(json = true, minified = true)
+        stringify(info)
+        return info.builder.toString()
+    }
+
+    override fun stringify(info: ToStringInformation) {
+        if (info.json) toJsonString(info) else toOnjString(info)
+    }
+
+    private fun toOnjString(info: ToStringInformation): String {
+        val (indent, _, minified, indentationLevel, builder) = info
         builder.append("{")
-        builder.append("\n")
+        if (!minified) builder.append("\n")
         val entries = value.entries.toList()
         for (i in entries.indices) {
-            for (x in 1..indentationLevel) builder.append("    ")
-            val cleanKey = entries[i].key.replace("\n", "").replace("\r", "")
-            builder
-                .append("\"$cleanKey\": ")
-                .append(entries[i].value.toJsonString(indentationLevel + 1))
-            if (i != entries.size - 1) builder.append(",")
-            builder.append("\n")
+            val entry = entries[i]
+            if (!minified) repeat(indentationLevel) {
+                builder.append(indent)
+            }
+            val key = if (isValidKey(entry.key)) entry.key else "'${entry.key}'"
+            builder.append(if (minified) "$key:" else "$key: ")
+            entry.value.stringify(info.withIndentationLevel(indentationLevel + 1))
+            if (!info.minified || i != entries.size - 1) builder.append(if (minified) "," else ",\n")
         }
-        for (i in 1 until indentationLevel) builder.append("    ")
+        if (!minified) {
+            for (i in 1 until indentationLevel) builder.append(indent)
+        }
         builder.append("}")
         return builder.toString()
     }
 
-    override fun toJsonString(): String = toJsonString(0)
+    private fun toJsonString(info: ToStringInformation): String {
+        val (indent, _, minified, indentationLevel, builder) = info
+        builder.append("{")
+        if (!minified) builder.append("\n")
+        val entries = value.entries.toList()
+        for (i in entries.indices) {
+            if (!minified) {
+                for (x in 1..indentationLevel) builder.append(indent)
+            }
+            val cleanKey = entries[i].key
+                .replace("\n", "")
+                .replace("\r", "")
+            builder.append("\"$cleanKey\": ")
+            entries[i].value.stringify(info.withIndentationLevel(indentationLevel + 1))
+            if (i != entries.size - 1) builder.append(",")
+            if (!minified) builder.append("\n")
+        }
+        if (!minified) {
+            for (i in 1 until indentationLevel) builder.append(indent)
+        }
+        builder.append("}")
+        return builder.toString()
+    }
 
     operator fun get(identifier: String): OnjValue? = value[identifier]
 
@@ -231,7 +264,11 @@ open class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
     }
 
     private fun isValidKey(key: String): Boolean {
-        return Regex("[a-zA-z_][a-zA-z\\d_]*").matches(key)
+        return keyRegex.matches(key)
+    }
+
+    private companion object {
+        val keyRegex = Regex("[a-zA-z_][a-zA-z\\d_]*")
     }
 }
 
@@ -240,63 +277,47 @@ open class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
  */
 class OnjArray(override val value: List<OnjValue>) : OnjValue() {
 
-    override fun toString(): String = toString(0)
-
-    override fun toString(indentationLevel: Int): String {
-        val builder = StringBuilder()
-        if (shouldInline()) {
-            builder.append("[ ")
-            for (part in value) {
-                builder
-                    .append(part.toString(indentationLevel + 1))
-                    .append(", ")
-            }
-            builder.append("]")
-            return builder.toString()
-        }
-
-        builder
-            .append("[")
-            .append("\n")
-        for (part in value) {
-            for (i in 1..indentationLevel) builder.append("    ")
-            builder
-                .append(part.toString(indentationLevel + 1))
-                .append(",\n")
-        }
-        for (i in 1 until indentationLevel) builder.append("    ")
-        builder.append("]")
-        return builder.toString()
+    override fun stringify(info: ToStringInformation) {
+        if (info.json) toJsonString(info) else toOnjString(info)
     }
 
-    override fun toJsonString(indentationLevel: Int): String {
-        val builder = StringBuilder()
-        if (shouldInline()) {
-            builder.append("[ ")
-            for (i in value.indices) {
-                builder.append(value[i].toJsonString(indentationLevel + 1))
-                if (i != value.size - 1) builder.append(", ")
+    private fun toOnjString(info: ToStringInformation) {
+        val (indent, _, minified, indentationLevel, builder) = info
+        builder.append("[")
+        if (!minified) builder.append("\n")
+        for (i in value.indices) {
+            val part = value[i]
+            if (!minified) repeat(indentationLevel) {
+                builder.append(indent)
             }
-            builder.append(" ]")
-            return builder.toString()
+            part.stringify(info.withIndentationLevel(indentationLevel + 1))
+            if (!minified || i != value.size - 1) builder.append(if (minified) "," else ",\n")
         }
+        if (!minified) {
+            for (i in 1 until indentationLevel) builder.append(indent)
+        }
+        builder.append("]")
+    }
 
-        builder
-            .append("[")
-            .append("\n")
+    private fun toJsonString(info: ToStringInformation): String {
+        val (indent, _, minified, indentationLevel, builder) = info
+        builder.append("[")
+        if (!minified) builder.append("\n")
 
         for (i in value.indices) {
-            for (x in 1..indentationLevel) builder.append("    ")
-            builder.append(value[i].toJsonString(indentationLevel + 1))
+            if (!minified) {
+                for (x in 1..indentationLevel) builder.append(indent)
+            }
+            value[i].stringify(info.withIndentationLevel(indentationLevel + 1))
             if (i != value.size - 1) builder.append(",")
-            builder.append("\n")
+            if (!minified) builder.append("\n")
         }
-        for (i in 1 until indentationLevel) builder.append("    ")
+        if (!minified) {
+            for (i in 1 until indentationLevel) builder.append(indent)
+        }
         builder.append("]")
         return builder.toString()
     }
-
-    override fun toJsonString() = toJsonString(0)
 
     /**
      * checks if the array only contains values of type [T]
@@ -323,26 +344,19 @@ class OnjArray(override val value: List<OnjValue>) : OnjValue() {
      */
     inline fun <reified T> get(index: Int): T = if (value[index].value is T) value[index].value as T else value[index] as T
 
-    private fun shouldInline(): Boolean {
-        //TODO: this is stupid
-        if (value.isEmpty()) return true
-        var cost = 0
-        for (part in value) {
-            if (part.isOnjArray() || part.isOnjObject()) return false
-            else if (part.isBoolean()) cost += 5
-            else if (part.isInt() || part.isFloat()) cost += 4
-            else if (part.isString()) cost += (part as OnjString).value.length
-            else if (part.isNull()) cost += 4
-        }
-        return cost < 60
-    }
 }
 
 class OnjNamedObject(val name: String, value: Map<String, OnjValue>) : OnjObject(value) {
 
-    override fun toString(): String = toString(0)
-
-    override fun toString(indentationLevel: Int): String {
-        return "\$$name ${super.toString(indentationLevel)}"
+    override fun stringify(info: ToStringInformation) {
+        if (info.json) {
+            super.stringify(info)
+            return
+        }
+        if (info.minified) {
+            info.builder.append("\$$name${super.stringify(info)}")
+        } else {
+            info.builder.append("\$$name ${super.stringify(info)}")
+        }
     }
 }

@@ -100,7 +100,7 @@ a block comment
 // a line comment
 
 /*
-unterminaded block comment
+unterminated block comment
 ````
 
 <br>

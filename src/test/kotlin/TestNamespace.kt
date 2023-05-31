@@ -29,9 +29,7 @@ object TestNamespace {
 
 class TestOnjValue(override val value: String) : OnjValue() {
 
-    override fun toString(): String = value
-    override fun toString(indentationLevel: Int): String = value
-    override fun toJsonString(): String = value
-    override fun toJsonString(indentationLevel: Int): String = value
-
+    override fun stringify(info: ToStringInformation) {
+        info.builder.append(value)
+    }
 }

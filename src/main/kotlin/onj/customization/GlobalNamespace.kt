@@ -6,8 +6,6 @@ import onj.customization.Namespace.OnjNamespace
 import onj.customization.OnjFunction.RegisterOnjFunction.*
 import onj.value.*
 import onj.customization.Namespace.OnjNamespaceVariables
-import onj.customization.Namespace.OnjNamespaceDatatypes
-import kotlin.reflect.KClass
 
 @OnjNamespace
 object GlobalNamespace {
