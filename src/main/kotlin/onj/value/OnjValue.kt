@@ -353,10 +353,8 @@ class OnjNamedObject(val name: String, value: Map<String, OnjValue>) : OnjObject
             super.stringify(info)
             return
         }
-        if (info.minified) {
-            info.builder.append("\$$name${super.stringify(info)}")
-        } else {
-            info.builder.append("\$$name ${super.stringify(info)}")
-        }
+        info.builder.append("\$$name")
+        if (!info.minified) info.builder.append(" ")
+        super.stringify(info)
     }
 }

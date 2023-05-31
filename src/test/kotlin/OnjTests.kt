@@ -94,7 +94,9 @@ object OnjTests : Test() {
 
     @TestCase
     fun testNamedObjects() {
-        fileWithSchema("namedObjects")
+        val obj = fileWithSchema("namedObjects") as OnjObject
+        OnjParser.parse(obj.toString())
+        OnjParser.parse(obj.toMinifiedString())
     }
 
     @TestCase
