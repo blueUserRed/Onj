@@ -739,24 +739,15 @@ class OnjColor(
     // the abstract field 'value' must be overridden
     override val value: Color // Color is an imaginary class
 ) : OnjValue() {
+
+    // OnjValue requires you to override the stringify functions, which is used for converting structures to onj or
+    // json strings. The info parameter provides a StringBuilder that the function should append to and provides
+    // information on whether the resulting string is onj or json, should be minified, and what indentation should be
+    // used.
     
-    // OnjValue requires you to override two toString functions
-    // the toString functions should always return valid onj, that 
-    // when parsed results in the same value.
-    // If the resulting string contains newlines, it should take the 
-    // indentationLevel parameter into account.
-    
-    override fun toString(): String = "color('${value.toHexString()}')"
-    override fun toString(indentiationLevel: Int): String = toString()
-    
-    // OnjValue also requires you to override two toJsonString functions
-    // These functions should always return valid json that in some
-    // way represents the type
-    // If the resulting string contains newlines, it should take the 
-    // indentationLevel parameter into account.
-    
-    override fun toJsonString(): String = "'${value.toHexString()}'"
-    override fun toJsonString(indentationLevel: Int): String = toJsonString()
+    override fun stringify(info: ToStringInformation) {
+        info.builder.append("color('${value.toHexString()}')")
+    }
 }
 
 ````
