@@ -156,17 +156,17 @@ class OnjSchemaObject internal constructor(
 
         for ((key, value) in keys) {
             val part = onjValue[key] ?: throw OnjSchemaException.fromMissingKey(
-                "$parentName->$key"
+                "$parentName.$key"
             )
-            value.match(part, "$parentName->$key")
+            value.match(part, "$parentName.$key")
         }
         for ((key, value) in optionalKeys) {
             val part = onjValue[key] ?: continue
-            value.match(part, "$parentName->$key")
+            value.match(part, "$parentName.$key")
         }
         if (!allowsAdditional) {
             for (key in onjValue.value.keys) if (key !in keys.keys && key !in optionalKeys.keys) {
-                throw OnjSchemaException.fromUnknownKey("$parentName->$key")
+                throw OnjSchemaException.fromUnknownKey("$parentName.$key")
             }
         }
     }
@@ -200,7 +200,7 @@ class TypeBasedOnjSchemaArray(
             onjValue.value.size
         )
         for (i in values.indices) {
-            type.match(values[i], "$parentName[$i]")
+            type.match(values[i], "$parentName.$i")
         }
     }
 
@@ -225,7 +225,7 @@ class LiteralOnjSchemaArray(
             onjValue.value.size
         )
         for (i in schemas.indices) {
-            schemas[i].match(onjValue.value[i], "$parentName[$i]")
+            schemas[i].match(onjValue.value[i], "$parentName.$i")
         }
     }
 

@@ -1,6 +1,8 @@
 package onj.value
 
+import onj.parser.OnjParserException
 import kotlin.reflect.KClass
+import kotlin.reflect.full.cast
 
 /**
  * represents a part of the parsed onj-structure
@@ -256,11 +258,42 @@ open class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
     }
 
     /**
-     * checks if a key [key] with type [T] exists and if it does, executes [then]
+     * accesses a child of this object using [accessor] in the format `.key.0.otherKey`. The example would access
+     * the key 'key' which is expected to be an array, then the index 0 is accessed, which is expected to be an object,
+     * and finally, 'otherKey' is accessed. The result (or its [value]) is expected to be of type [T]
      */
-    inline fun <reified T> ifHas(key: String, then: (value: T) -> Unit) {
-//        if (hasKey<T>(key)) then(get<T>(key))
-        if (value[key]?.value is T) then(value[key]?.value as T) else if (value[key] is T) then(value[key] as T)
+    inline fun <reified T : Any> access(accessor: String): T = access(accessor, T::class)
+
+    /**
+     * accesses a child of this object using [accessor] in the format `.key.0.otherKey`. The example would access
+     * the key 'key' which is expected to be an array, then the index 0 is accessed, which is expected to be an object,
+     * and finally, 'otherKey' is accessed. The result (or its [value]) is expected to be of type [toAccess]
+     */
+    fun <T : Any> access(accessor: String, toAccess: KClass<T>): T {
+        if (!accessor.startsWith(".")) throw OnjParserException("accessor must start with '.'")
+        val parts = accessor.split(".")
+        var cur: OnjValue = this
+        parts
+            .drop(1)
+            .forEach {
+                cur = try {
+                    val num = Integer.parseInt(it)
+                    if (cur !is OnjArray) {
+                        throw OnjParserException("tried to access value of type ${cur::class.simpleName} with number")
+                    }
+                    (cur as OnjArray)[num]
+                } catch (e: java.lang.NumberFormatException) {
+                    if (cur !is OnjObject) {
+                        throw OnjParserException("tried to access value of type ${cur::class.simpleName} with string")
+                    }
+                    (cur as OnjObject)[it] ?: throw OnjParserException("no key with name $it")
+                }
+            }
+        if (toAccess.isInstance(cur)) return toAccess.cast(cur)
+        if (toAccess.isInstance(cur.value)) return toAccess.cast(cur.value)
+        throw OnjParserException(
+            "value accessed with $accessor was expected to be ${toAccess.simpleName} but is ${cur::class.simpleName}"
+        )
     }
 
     private fun isValidKey(key: String): Boolean {
@@ -337,6 +370,46 @@ class OnjArray(override val value: List<OnjValue>) : OnjValue() {
      * the size of the array
      */
     fun size(): Int = value.size
+
+
+    /**
+     * accesses a child of this object using [accessor] in the format `.key.0.otherKey`. The example would access
+     * the key 'key' which is expected to be an array, then the index 0 is accessed, which is expected to be an object,
+     * and finally, 'otherKey' is accessed. The result (or its [value]) is expected to be of type [T]
+     */
+    inline fun <reified T : Any> access(accessor: String): T = access(accessor, T::class)
+
+    /**
+     * accesses a child of this object using [accessor] in the format `.key.0.otherKey`. The example would access
+     * the key 'key' which is expected to be an array, then the index 0 is accessed, which is expected to be an object,
+     * and finally, 'otherKey' is accessed. The result (or its [value]) is expected to be of type [toAccess]
+     */
+    fun <T : Any> access(accessor: String, toAccess: KClass<T>): T {
+        if (!accessor.startsWith(".")) throw OnjParserException("accessor must start with '.'")
+        val parts = accessor.split(".")
+        var cur: OnjValue = this
+        parts
+            .drop(1)
+            .forEach {
+                cur = try {
+                    val num = Integer.parseInt(it)
+                    if (cur !is OnjArray) {
+                        throw OnjParserException("tried to access value of type ${cur::class.simpleName} with number")
+                    }
+                    (cur as OnjArray)[num]
+                } catch (e: java.lang.NumberFormatException) {
+                    if (cur !is OnjObject) {
+                        throw OnjParserException("tried to access value of type ${cur::class.simpleName} with string")
+                    }
+                    (cur as OnjObject)[it] ?: throw OnjParserException("no key with name $it")
+                }
+            }
+        if (toAccess.isInstance(cur)) return toAccess.cast(cur)
+        if (toAccess.isInstance(cur.value)) return toAccess.cast(cur.value)
+        throw OnjParserException(
+            "value accessed with $accessor was expected to be ${toAccess.simpleName} but is ${cur::class.simpleName}"
+        )
+    }
 
     /**
      * gets the value at [index] with type [T] where the type can either be the kotlin-type or the onj-type

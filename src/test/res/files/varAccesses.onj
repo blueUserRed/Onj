@@ -14,5 +14,7 @@ var arr = [
 _0: arr.0,
 _1: arr.1,
 
+arr: arr,
+
 hi: arr.10.b.0,
 five: arr.(arr.(2 + 3) + arr.5).a,

@@ -56,6 +56,12 @@ object OnjTests : Test() {
         assertEquals(obj.get<String>("hi"), "hi")
         assertEquals(obj.get<Long>("five"), 5L)
         assertEquals(obj.get<Long>("1"), 1L)
+        assertEquals(obj.access<String>(".arr.10.b.0"), "hi")
+        val arr = obj
+            .get<OnjArray>("arr")
+            .get<OnjObject>(10)
+            .get<OnjArray>("b")
+        assertEquals(obj.access<OnjArray>(".arr.10.b"), arr)
     }
 
     @TestCase
