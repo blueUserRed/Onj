@@ -1,6 +1,7 @@
 package onj.value
 
 import onj.parser.OnjParserException
+import java.text.NumberFormat
 import kotlin.reflect.KClass
 import kotlin.reflect.full.cast
 
@@ -84,8 +85,18 @@ class OnjFloat(override val value: Double) : OnjValue() {
     }
 
     // avoid the scientific notation (e.g. 2e10)
-    private fun Double.toDecimalNotation() = String.format("%.16f", this).trimEnd('0')
+    private fun Double.toDecimalNotation() = numberFormat.format(this)
 
+
+    private companion object {
+
+        val numberFormat = NumberFormat.getNumberInstance()
+
+        init {
+            numberFormat.maximumFractionDigits = 16
+        }
+
+    }
 
 }
 
