@@ -258,6 +258,14 @@ open class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
     }
 
     /**
+     * checks if a key [key] with type [T] exists and if it does, executes [then]
+     */
+    inline fun <reified T> ifHas(key: String, then: (value: T) -> Unit) {
+//        if (hasKey<T>(key)) then(get<T>(key))
+        if (value[key]?.value is T) then(value[key]?.value as T) else if (value[key] is T) then(value[key] as T)
+    }
+
+    /**
      * accesses a child of this object using [accessor] in the format `.key.0.otherKey`. The example would access
      * the key 'key' which is expected to be an array, then the index 0 is accessed, which is expected to be an object,
      * and finally, 'otherKey' is accessed. The result (or its [value]) is expected to be of type [T]
