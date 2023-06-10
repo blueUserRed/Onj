@@ -2,6 +2,7 @@ package onj.value
 
 import onj.parser.OnjParserException
 import java.text.NumberFormat
+import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.cast
 
@@ -90,9 +91,10 @@ class OnjFloat(override val value: Double) : OnjValue() {
 
     private companion object {
 
-        val numberFormat = NumberFormat.getNumberInstance()
+        val numberFormat = NumberFormat.getNumberInstance(Locale.ENGLISH)
 
         init {
+            numberFormat.minimumFractionDigits = 1
             numberFormat.maximumFractionDigits = 16
         }
 
