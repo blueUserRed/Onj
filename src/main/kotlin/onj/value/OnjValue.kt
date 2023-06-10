@@ -72,16 +72,20 @@ class OnjFloat(override val value: Double) : OnjValue() {
             when (value) {
                 Double.POSITIVE_INFINITY -> "infinity"
                 Double.NEGATIVE_INFINITY -> "-infinity"
-                else -> if (value.isNaN()) "NaN" else value.toString()
+                else -> if (value.isNaN()) "NaN" else value.toDecimalNotation()
             }
         } else {
             when (value) {
                 Double.POSITIVE_INFINITY -> "Infinity"
                 Double.NEGATIVE_INFINITY -> "-Infinity"
-                else -> if (value.isNaN()) "NaN" else value.toString()
+                else -> if (value.isNaN()) "NaN" else value.toDecimalNotation()
             }
         })
     }
+
+    // avoid the scientific notation (e.g. 2e10)
+    private fun Double.toDecimalNotation() = String.format("%.16f", this).trimEnd('0')
+
 
 }
 
