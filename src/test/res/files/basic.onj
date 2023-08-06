@@ -8,6 +8,7 @@ obj: {
     "1": "string",
     a: 234,
     'b': true,
+    "sdf'\n\r\"'\'": 2
 },
 
 obj2: null,
@@ -15,7 +16,7 @@ obj2: null,
 twoElements: [ true, false ],
 
 any: {
-    hi: "ljsdf",
+    hi: "l\nj\rsd\"f\'",
     test: null,
     a: { b: 3 },
     b: [1, 2, 3],

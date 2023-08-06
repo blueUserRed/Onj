@@ -108,9 +108,7 @@ class OnjFloat(override val value: Double) : OnjValue() {
 class OnjString(override val value: String) : OnjValue() {
 
     override fun stringify(info: ToStringInformation) {
-        val cleaned = value
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
+        val cleaned = sanitizeString(value)
         info.builder.append(if (info.json) "\"$cleaned\"" else "'$cleaned'")
     }
 
@@ -191,7 +189,7 @@ open class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
             if (!minified) repeat(indentationLevel) {
                 builder.append(indent)
             }
-            val key = if (isValidKey(entry.key)) entry.key else "'${entry.key}'"
+            val key = if (isValidKey(entry.key)) entry.key else "'${sanitizeString(entry.key)}'"
             builder.append(if (minified) "$key:" else "$key: ")
             entry.value.stringify(info.withIndentationLevel(indentationLevel + 1))
             if (!info.minified || i != entries.size - 1) builder.append(if (minified) "," else ",\n")
@@ -212,9 +210,7 @@ open class OnjObject(override val value: Map<String, OnjValue>) : OnjValue() {
             if (!minified) {
                 for (x in 1..indentationLevel) builder.append(indent)
             }
-            val cleanKey = entries[i].key
-                .replace("\n", "")
-                .replace("\r", "")
+            val cleanKey = sanitizeString(entries[i].key)
             builder.append("\"$cleanKey\": ")
             entries[i].value.stringify(info.withIndentationLevel(indentationLevel + 1))
             if (i != entries.size - 1) builder.append(",")
@@ -456,3 +452,9 @@ class OnjNamedObject(val name: String, value: Map<String, OnjValue>) : OnjObject
         super.stringify(info)
     }
 }
+
+private fun sanitizeString(s: String): String = s
+    .replace("\n", "\\n")
+    .replace("\r", "\\r")
+    .replace("\"", "\\\"")
+    .replace("'", "\\'")
