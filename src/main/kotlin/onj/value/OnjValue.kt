@@ -96,6 +96,7 @@ class OnjFloat(override val value: Double) : OnjValue() {
         init {
             numberFormat.minimumFractionDigits = 1
             numberFormat.maximumFractionDigits = 16
+            numberFormat.isGroupingUsed = false
         }
 
     }

@@ -6,6 +6,7 @@ arr4: int?[]?,
 
 obj: {"1": string,
     a: int,
+    hi: float,
     b: boolean,...*},
 
 obj2: {
