@@ -188,6 +188,12 @@ class TypeBasedOnjSchemaArray(
 ) : OnjSchemaArray(nullable) {
 
     override fun match(onjValue: OnjValue, parentName: String) {
+
+        if (onjValue.isNull()) {
+            if (nullable) return
+            throw OnjSchemaException.fromNonNullable(parentName, "array")
+        }
+
         if (!onjValue.isOnjArray()) throw OnjSchemaException.fromTypeError(
             parentName,
             "array",
