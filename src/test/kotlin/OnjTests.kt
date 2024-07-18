@@ -4,14 +4,20 @@ import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
 import onj.schema.OnjSchema
 import onj.schema.OnjSchemaException
+import onj.serialization.OnjDeserializer
+import onj.serialization.OnjSerializer
 import onj.value.*
 
 object OnjTests : Test() {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        OnjConfig.registerNameSpace("Test", TestNamespace)
-        run()
+        val result = OnjSerializer.serialize(Cat("cool name", 3, "black"))
+        println(result)
+        val deserialized = OnjDeserializer.deserialize<Cat>(result as OnjObject)
+        println(deserialized)
+//        OnjConfig.registerNameSpace("Test", TestNamespace)
+//        run()
     }
 
     @TestCase
