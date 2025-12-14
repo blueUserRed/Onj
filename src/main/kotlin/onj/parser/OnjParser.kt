@@ -13,7 +13,8 @@ class OnjParser private constructor(
     private val code: String,
     private val fileName: String,
     private val file: File?,
-    private val disallowedImports: List<File>
+    private val disallowedImports: List<File>,
+    private val data: OnjParserData<OnjValue>
 ) {
 
     private var next = 0
@@ -142,12 +143,9 @@ class OnjParser private constructor(
     private fun doOnjFileImport(
         importPath: String,
         importPathToken: OnjToken
-    ): OnjObject {
-        val fileToImport = Paths.get(importPath).toFile()
-//
-//        val fileToImport = file?.let {
-//            file.parentFile.toPath().resolve(importPath).toFile()
-//        } ?: Paths.get(importPath).toFile()
+    ): OnjValue {
+        val fileToImport = data.resolvePath(importPath).toFile()
+        data.importCache(fileToImport)?.let { return it }
 
         if (fileToImport.canonicalFile in disallowedImports) throw OnjParserException.fromErrorMessage(
             importPathToken.char, code,
@@ -168,7 +166,8 @@ class OnjParser private constructor(
             codeToImport,
             importPath,
             fileToImport,
-            file?.let { disallowedImports + file.canonicalFile } ?: disallowedImports
+            file?.let { disallowedImports + file.canonicalFile } ?: disallowedImports,
+            data
         )
         return parser.parseTopLevel()
     }
@@ -588,14 +587,27 @@ class OnjParser private constructor(
         fun parseFile(file: File): OnjValue {
             val code = file.readText(Charsets.UTF_8)
             val tokens = Tokenizer(code, file.name, false).tokenize()
-            return OnjParser(tokens, code, file.name, file, listOf()).parseTopLevel()
+            return OnjParser(tokens, code, file.name, file, listOf(), OnjParserData()).parseTopLevel()
         }
 
         fun parseFile(path: String): OnjValue = parseFile(Paths.get(path).toFile())
 
         fun parse(code: String): OnjValue {
             val tokens = Tokenizer(code, "anonymous", false).tokenize()
-            return OnjParser(tokens, code, "anonymous", null, listOf()).parseTopLevel()
+            return OnjParser(tokens, code, "anonymous", null, listOf(), OnjParserData()).parseTopLevel()
+        }
+
+        fun parseFile(file: File, data: OnjParserData<OnjValue>): OnjValue {
+            val code = file.readText(Charsets.UTF_8)
+            val tokens = Tokenizer(code, file.name, false).tokenize()
+            return OnjParser(tokens, code, file.name, file, listOf(), data).parseTopLevel()
+        }
+
+        fun parseFile(path: String, data: OnjParserData<OnjValue>): OnjValue = parseFile(data.resolvePath(path).toFile())
+
+        fun parse(code: String, data: OnjParserData<OnjValue>): OnjValue {
+            val tokens = Tokenizer(code, "anonymous", false).tokenize()
+            return OnjParser(tokens, code, "anonymous", null, listOf(),data).parseTopLevel()
         }
 
     }

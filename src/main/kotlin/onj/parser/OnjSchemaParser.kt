@@ -4,6 +4,7 @@ import onj.customization.Namespace
 import onj.customization.OnjConfig
 import onj.schema.*
 import onj.value.OnjObject
+import onj.value.OnjValue
 import java.io.File
 import java.io.IOException
 import java.nio.file.Paths
@@ -13,7 +14,8 @@ class OnjSchemaParser internal constructor(
     private val code: String,
     private val fileName: String,
     private val file: File?,
-    private val disallowedImports: List<File>
+    private val disallowedImports: List<File>,
+    private val data: OnjSchemaParserData
 ) {
 
     private var next = 0
@@ -178,13 +180,13 @@ class OnjSchemaParser internal constructor(
         val importPathToken = consume(OnjTokenType.STRING)
         val importPath = importPathToken.literal as String
 
-        val (toImport, parser) = doOnjSchemaFileImport(importPath, importPathToken)
+        val (toImport, namedObjects) = doOnjSchemaFileImport(importPath, importPathToken)
 
         val namedObjectNames = namedObjectGroups
             .flatMap { it.value }
             .map { it.name }
 
-        for ((namedObjectGroup, namedObjects) in parser.namedObjectGroups) {
+        for ((namedObjectGroup, namedObjects) in namedObjects) {
             if (namedObjectGroup in namedObjectGroups.keys) throw OnjParserException.fromErrorMessage(
                 importPathToken.char, code,
                 "named object group $namedObjectGroup imported here was already declared",
@@ -221,11 +223,9 @@ class OnjSchemaParser internal constructor(
     private fun doOnjSchemaFileImport(
         importPath: String,
         importPathToken: OnjToken
-    ): Pair<OnjSchema, OnjSchemaParser> {
-        val fileToImport = Paths.get(importPath).toFile()
-//        val fileToImport = file?.let {
-//            file.parentFile.toPath().resolve(importPath).toFile()
-//        } ?: Paths.get(importPath).toFile()
+    ): Pair<OnjSchema, MutableMap<String, List<OnjSchemaNamedObject>>> {
+        val fileToImport = data.resolvePath(importPath).toFile()
+        data.importCache(fileToImport)?.let { return it }
 
         if (fileToImport.canonicalFile in disallowedImports) throw OnjParserException.fromErrorMessage(
             importPathToken.char, code,
@@ -246,9 +246,10 @@ class OnjSchemaParser internal constructor(
             codeToImport,
             importPath,
             fileToImport,
-            file?.let { disallowedImports + file.canonicalFile } ?: disallowedImports
+            file?.let { disallowedImports + file.canonicalFile } ?: disallowedImports,
+            data
         )
-        return parser.parseTopLevel() to parser
+        return parser.parseTopLevel() to parser.namedObjectGroups
     }
 
     private fun parseKeyValuePair(): Triple<String, OnjSchema, Boolean> {
@@ -471,14 +472,34 @@ class OnjSchemaParser internal constructor(
         fun parseFile(file: File): OnjSchema {
             val code = file.readText(Charsets.UTF_8)
             val tokens = Tokenizer(code, file.name, true).tokenize()
-            return OnjSchemaParser(tokens, code, file.name, file, listOf()).parseTopLevel()
+            return OnjSchemaParser(tokens, code, file.name, file, listOf(), OnjParserData()).parseTopLevel()
         }
 
         fun parseFile(path: String): OnjSchema = parseFile(Paths.get(path).toFile())
 
         fun parse(code: String): OnjSchema {
             val tokens = Tokenizer(code, "anonymous", true).tokenize()
-            return OnjSchemaParser(tokens, code, "anonymous", null, listOf()).parseTopLevel()
+            return OnjSchemaParser(tokens, code, "anonymous", null, listOf(), OnjParserData()).parseTopLevel()
+        }
+
+        fun parseFile(file: File, data: OnjSchemaParserData): OnjSchema {
+            val code = file.readText(Charsets.UTF_8)
+            val tokens = Tokenizer(code, file.name, true).tokenize()
+            return OnjSchemaParser(tokens, code, file.name, file, listOf(), data).parseTopLevel()
+        }
+
+        fun parseFileComplete(file: File, data: OnjSchemaParserData): Pair<OnjSchema, MutableMap<String, List<OnjSchemaNamedObject>>> {
+            val code = file.readText(Charsets.UTF_8)
+            val tokens = Tokenizer(code, file.name, true).tokenize()
+            val parser = OnjSchemaParser(tokens, code, file.name, file, listOf(), data)
+            return parser.parseTopLevel() to parser.namedObjectGroups
+        }
+
+        fun parseFile(path: String, data: OnjSchemaParserData): OnjSchema = parseFile(data.resolvePath(path).toFile())
+
+        fun parse(code: String, data: OnjSchemaParserData): OnjSchema {
+            val tokens = Tokenizer(code, "anonymous", true).tokenize()
+            return OnjSchemaParser(tokens, code, "anonymous", null, listOf(), data).parseTopLevel()
         }
 
     }
