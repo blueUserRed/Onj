@@ -182,8 +182,8 @@ class OnjSchemaObject internal constructor(
 sealed class OnjSchemaArray(nullable: Boolean) : OnjSchema(nullable)
 
 class TypeBasedOnjSchemaArray(
-    private val type: OnjSchema,
-    private val size: Int?,
+    val type: OnjSchema,
+    val size: Int?,
     nullable: Boolean
 ) : OnjSchemaArray(nullable) {
 
