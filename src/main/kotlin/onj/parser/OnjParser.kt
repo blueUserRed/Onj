@@ -14,7 +14,7 @@ class OnjParser private constructor(
     private val fileName: String,
     private val file: File?,
     private val disallowedImports: List<File>,
-    private val data: OnjParserData<OnjValue>
+    private val data: OnjParserData
 ) {
 
     private var next = 0
@@ -597,15 +597,15 @@ class OnjParser private constructor(
             return OnjParser(tokens, code, "anonymous", null, listOf(), OnjParserData()).parseTopLevel()
         }
 
-        fun parseFile(file: File, data: OnjParserData<OnjValue>): OnjValue {
+        fun parseFile(file: File, data: OnjParserData): OnjValue {
             val code = file.readText(Charsets.UTF_8)
             val tokens = Tokenizer(code, file.name, false).tokenize()
             return OnjParser(tokens, code, file.name, file, listOf(), data).parseTopLevel()
         }
 
-        fun parseFile(path: String, data: OnjParserData<OnjValue>): OnjValue = parseFile(data.resolvePath(path).toFile())
+        fun parseFile(path: String, data: OnjParserData): OnjValue = parseFile(data.resolvePath(path).toFile())
 
-        fun parse(code: String, data: OnjParserData<OnjValue>): OnjValue {
+        fun parse(code: String, data: OnjParserData): OnjValue {
             val tokens = Tokenizer(code, "anonymous", false).tokenize()
             return OnjParser(tokens, code, "anonymous", null, listOf(),data).parseTopLevel()
         }
