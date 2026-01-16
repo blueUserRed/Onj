@@ -295,7 +295,7 @@ class OnjSchemaParser internal constructor(
                 val variable = variables[identifier]
                     ?:  lookupCustomDatatype(identifier)
                 if (data.analysisMode) {
-                    variable ?: OnjSchemaAny()
+                    variable ?: OnjSchemaCustomDataType(identifier, Any::class, false)
                 } else {
                     variable ?: throw OnjParserException.fromErrorMessage(
                         identifierToken.char, code, "Unknown variable $identifier", fileName
