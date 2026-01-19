@@ -288,7 +288,7 @@ class OnjSchemaNamedObjectGroup internal constructor(
 }
 
 class OnjSchemaCustomDataType internal constructor(
-    private val name: String,
+    val name: String,
     private val type: KClass<*>,
     nullable: Boolean
 ) : OnjSchema(nullable) {

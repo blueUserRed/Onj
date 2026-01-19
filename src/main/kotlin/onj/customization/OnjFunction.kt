@@ -1,15 +1,19 @@
 package onj.customization
 
+import onj.builder.buildOnjObject
 import onj.parser.OnjParserException
 import onj.parser.OnjSchemaParser
 import onj.parser.OnjToken
 import onj.schema.OnjSchemaArray
 import onj.schema.OnjSchemaObject
+import onj.value.OnjObject
 import onj.value.OnjValue
 
 data class OnjFunction(
     val name: String,
     private val schema: String,
+    val parameterNames: List<String>,
+    val returnTypeString: String,
     val canBeUsedAsInfix: Boolean = false,
     private val function: (Array<OnjValue>) -> OnjValue
 ) {
@@ -63,6 +67,13 @@ data class OnjFunction(
         return true
     }
 
+    fun asOnjObject(): OnjObject = buildOnjObject {
+        "name" with name
+        "isInfix" with canBeUsedAsInfix
+        "paramSchema" with paramsSchema
+        "paramNames" with parameterNames
+        "returnType" with returnTypeString
+    }
 
     @Retention(AnnotationRetention.RUNTIME)
     @Target(AnnotationTarget.FUNCTION)

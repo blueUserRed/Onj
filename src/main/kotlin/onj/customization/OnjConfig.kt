@@ -1,15 +1,14 @@
 package onj.customization
 
 
+import onj.builder.buildOnjObject
 import onj.customization.OnjFunction.RegisterOnjFunction
 import onj.customization.Namespace.OnjNamespace
 import onj.customization.Namespace.OnjNamespaceVariables
 import onj.customization.Namespace.OnjNamespaceDatatypes
 import onj.customization.OnjFunction.RegisterOnjFunction.*
-import onj.parser.OnjParserException
-import onj.parser.OnjSchemaParser
-import onj.schema.*
 import onj.value.*
+import java.io.File
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
@@ -21,20 +20,19 @@ object OnjConfig {
     private val namespaces: MutableMap<String, Namespace> = mutableMapOf()
 
     init {
-        registerNameSpace("global", GlobalNamespace)
+        registerNamespace("global", GlobalNamespace)
     }
 
     fun getGlobalNamespace(): Namespace? = namespaces["global"]
 
     fun getNamespace(name: String): Namespace? = namespaces[name]
 
-    fun registerNameSpace(name: String, obj: Any) { //TODO: fix naming
+    fun registerNamespace(name: String, obj: Any) {
         val clazz = obj::class
         val annotation = clazz.findAnnotation<OnjNamespace>()
         annotation ?: throw RuntimeException(
             "cannot register namespace $name because it dosen't have the OnjNamespace annotation"
         )
-        val functions = getFunctions(obj)
         val variables = mutableMapOf<String, OnjValue>()
         val customDatatypes = mutableMapOf<String, KClass<*>>()
 
@@ -78,6 +76,7 @@ object OnjConfig {
                     customDatatypes[key] = value
                 }
             }
+        val functions = getFunctions(obj, customDatatypes)
 
         if (namespaces.containsKey(name)) throw RuntimeException(
             "cannot register namespace $name because a namespace with that name already exists"
@@ -90,15 +89,17 @@ object OnjConfig {
         )
     }
 
-    private fun getFunctions(obj: Any): Set<OnjFunction> {
+    private fun getFunctions(obj: Any, customTypes: Map<String, KClass<*>>): Set<OnjFunction> {
         val clazz = obj::class
         val functions = mutableSetOf<OnjFunction>()
         for (function in clazz.functions) {
             val annotation = function.findAnnotation<RegisterOnjFunction>() ?: continue
-            assertThatFunctionCanBeRegistered(obj, annotation.type, function)
+            val (paramNames, returnType) = assertThatFunctionCanBeRegistered(obj, annotation.type, function, customTypes)
             val onjFunction = OnjFunction(
                 getRegistrationNameForFunction(annotation.type, function.name),
                 annotation.schema,
+                paramNames,
+                returnType,
                 annotation.type == OnjFunctionType.INFIX
             ) { function.call(obj, *it) as OnjValue }
             functions.add(onjFunction)
@@ -106,10 +107,16 @@ object OnjConfig {
         return functions
     }
 
-    private fun assertThatFunctionCanBeRegistered(obj: Any, type: OnjFunctionType, function: KFunction<*>) {
+    private fun assertThatFunctionCanBeRegistered(
+        obj: Any,
+        type: OnjFunctionType,
+        function: KFunction<*>,
+        customTypes: Map<String, KClass<*>>
+    ): Pair<List<String>, String> {
         val onjValueType = OnjValue::class.createType()
         var isFirst = true
         var hasReceiver = false
+        val parameterNames = mutableListOf<String>()
         function.parameters.forEach {
 
             if (isFirst) {
@@ -129,6 +136,7 @@ object OnjConfig {
                 "could not register function ${function.name} because" +
                 " its parameters include types that don't extend OnjValue"
             )
+            parameterNames.add(it.name ?: "")
         }
 
         val paramsCount = if (hasReceiver) function.parameters.size - 1 else function.parameters.size
@@ -139,7 +147,12 @@ object OnjConfig {
         ) {
             throw RuntimeException(
                 "could not register function ${function.name} " +
-                "because it is marked as operator or infix but has more than two parameters"
+                "because it is marked as operator or infix but an amount of parameters different from 2"
+            )
+        } else if (type == OnjFunctionType.OPERATOR && function.name == "unaryMinus" && paramsCount != 1) {
+            throw RuntimeException(
+                "could not register function ${function.name} " +
+                        "because it overloads unaryMinus and doesn't have one parameter"
             )
         } else if (type == OnjFunctionType.CONVERSION && paramsCount != 1) {
             throw RuntimeException(
@@ -148,9 +161,28 @@ object OnjConfig {
             )
         }
 
-        if (!function.returnType.isSubtypeOf(onjValueType)) throw RuntimeException(
-            "could not register function ${function.name} because its return type dosen't extend OnjValue"
+        val returnType = function.returnType
+        if (!returnType.isSubtypeOf(onjValueType)) throw RuntimeException(
+            "could not register function ${function.name} because its return type doesn't extend OnjValue"
         )
+        val returnTypeAsString = when {
+            returnType.isSupertypeOf(onjValueType) && returnType.isSubtypeOf(onjValueType) -> "*"
+            returnType.isSubtypeOf(OnjInt::class.createType()) -> "int"
+            returnType.isSubtypeOf(OnjFloat::class.createType()) -> "float"
+            returnType.isSubtypeOf(OnjString::class.createType()) -> "string"
+            returnType.isSubtypeOf(OnjBoolean::class.createType()) -> "boolean"
+            returnType.isSubtypeOf(OnjNull::class.createType()) -> "*"
+            returnType.isSubtypeOf(OnjObject::class.createType()) -> "object"
+            returnType.isSubtypeOf(OnjArray::class.createType()) -> "array"
+            else -> {
+                customTypes.entries.find { (_, clazz) ->
+                    returnType.isSubtypeOf(clazz.createType())
+                }?.key ?: throw RuntimeException(
+                    "could not register function ${function.name} because it has a custom return type, that is registered with OnjNamespaceDataType"
+                )
+            }
+        }
+        return parameterNames to returnTypeAsString
     }
 
     private fun getRegistrationNameForFunction(type: OnjFunctionType, name: String): String = when (type) {
@@ -168,6 +200,12 @@ object OnjConfig {
 
     }
 
-
+    fun dumpOnjEnv(file: File) {
+        val obj = buildOnjObject {
+            "namespaces" with namespaces.values.map { it.asOnj() }
+        }
+        if (!file.exists()) file.createNewFile()
+        file.writeText(obj.toString())
+    }
 
 }

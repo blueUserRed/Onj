@@ -10,7 +10,7 @@ object OnjTests : Test() {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        OnjConfig.registerNameSpace("Test", TestNamespace)
+        OnjConfig.registerNamespace("Test", TestNamespace)
         run()
     }
 
