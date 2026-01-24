@@ -70,7 +70,7 @@ data class OnjFunction(
     fun asOnjObject(): OnjObject = buildOnjObject {
         "name" with name
         "isInfix" with canBeUsedAsInfix
-        "paramSchema" with paramsSchema
+        "paramSchema" with schema
         "paramNames" with parameterNames
         "returnType" with returnTypeString
     }

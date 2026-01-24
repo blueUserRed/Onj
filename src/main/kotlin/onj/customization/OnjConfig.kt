@@ -205,7 +205,7 @@ object OnjConfig {
             "namespaces" with namespaces.values.map { it.asOnj() }
         }
         if (!file.exists()) file.createNewFile()
-        file.writeText(obj.toString())
+        file.writeText(obj.toMinifiedString())
     }
 
 }
