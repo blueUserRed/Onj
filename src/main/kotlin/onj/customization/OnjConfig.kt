@@ -31,7 +31,7 @@ object OnjConfig {
         val clazz = obj::class
         val annotation = clazz.findAnnotation<OnjNamespace>()
         annotation ?: throw RuntimeException(
-            "cannot register namespace $name because it dosen't have the OnjNamespace annotation"
+            "cannot register namespace $name because it doesn't have the OnjNamespace annotation"
         )
         val variables = mutableMapOf<String, OnjValue>()
         val customDatatypes = mutableMapOf<String, KClass<*>>()

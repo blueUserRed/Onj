@@ -188,18 +188,23 @@ class OnjSchemaParser internal constructor(
 
         val namedObjectNames = namedObjectGroups
             .flatMap { it.value }
-            .map { it.name }
 
         for ((namedObjectGroup, namedObjects) in namedObjects) {
-            if (namedObjectGroup in namedObjectGroups.keys) throw OnjParserException.fromErrorMessage(
-                importPathToken.char, code,
-                "named object group $namedObjectGroup imported here was already declared",
-                fileName
-            )
-            for (namedObject in namedObjects) {
-                if (namedObject.name in namedObjectNames) throw OnjParserException.fromErrorMessage(
+            val existingNamedObjectGroup = namedObjectGroups[namedObjectGroup]
+            if (existingNamedObjectGroup != null) {
+                val different = namedObjects.size != existingNamedObjectGroup.size ||
+                        namedObjects.zip(existingNamedObjectGroup).any { it.first != it.second }
+                if (different) throw OnjParserException.fromErrorMessage(
                     importPathToken.char, code,
-                    "named object ${namedObject.name} imported here was already declared" +
+                    "named object group $namedObjectGroup imported here was already declared and doesn't match previous declaration",
+                    fileName
+                )
+            }
+            for (namedObject in namedObjects) {
+                val existingObj = namedObjectNames.find { it.name == namedObject.name }
+                if (existingObj != null && existingObj != namedObject) throw OnjParserException.fromErrorMessage(
+                    importPathToken.char, code,
+                    "named object ${namedObject.name} imported here was already declared and doesn't match previous declaration" +
                             "(Note that named object names need to be unique across groups)",
                     fileName
                 )

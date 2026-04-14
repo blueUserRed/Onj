@@ -116,6 +116,18 @@ object OnjTests : Test() {
     }
 
     @TestCase
+    fun testNamedObjectGroupImports() {
+        OnjSchemaParser.parseFile("src/test/res/namedObjGroupImportTest/importTwiceIndirected.onjschema")
+        OnjSchemaParser.parseFile("src/test/res/namedObjGroupImportTest/importTwiceDifferentFile.onjschema")
+    }
+
+    @TestCase
+    fun testImportDifferentNamedObjectGroups() {
+        expect<OnjParserException>()
+        OnjSchemaParser.parseFile("src/test/res/namedObjGroupImportTest/importDifferentGroups.onjschema")
+    }
+
+    @TestCase
     fun testNamespace() {
         fileWithSchema("namespace")
     }

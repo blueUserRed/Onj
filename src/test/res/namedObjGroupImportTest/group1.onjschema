@@ -1,0 +1,15 @@
+
+$Group {
+
+    $A {
+        test: string,
+    }
+
+    $B {}
+
+    $C {
+        a: int,
+        b: boolean
+    }
+
+}

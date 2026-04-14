@@ -26,7 +26,7 @@ abstract class OnjValue {
 
 
     override fun equals(other: Any?): Boolean {
-        return other != null && other::class == this::class && (other as OnjValue).value == this.value
+        return other != null && other is OnjValue && other.value == this.value
     }
 
     override fun hashCode(): Int = value.hashCode()

@@ -34,6 +34,8 @@ abstract class OnjSchema internal constructor(_nullable: Boolean) {
 
     internal abstract fun match(onjValue: OnjValue, parentName: String)
 
+    abstract override fun equals(other: Any?): Boolean
+
     /**
      * returns a copy of this schema, but makes it nullable
      */
@@ -57,6 +59,8 @@ class OnjSchemaBoolean(nullable: Boolean) : OnjSchema(nullable) {
         )
     }
 
+    override fun equals(other: Any?): Boolean = other is OnjSchemaBoolean && other.nullable == nullable
+
     override fun getAsNullable(): OnjSchema {
         return OnjSchemaBoolean(true)
     }
@@ -78,6 +82,8 @@ class OnjSchemaInt(nullable: Boolean) : OnjSchema(nullable) {
             getActualType(onjValue)
         )
     }
+
+    override fun equals(other: Any?): Boolean = other is OnjSchemaInt && other.nullable == nullable
 
     override fun getAsNullable(): OnjSchema {
         return OnjSchemaInt(true)
@@ -101,6 +107,8 @@ class OnjSchemaFloat(nullable: Boolean) : OnjSchema(nullable) {
         )
     }
 
+    override fun equals(other: Any?): Boolean = other is OnjSchemaFloat && other.nullable == nullable
+
     override fun getAsNullable(): OnjSchema {
         return OnjSchemaFloat(true)
     }
@@ -122,6 +130,8 @@ class OnjSchemaString(nullable: Boolean) : OnjSchema(nullable) {
             getActualType(onjValue)
         )
     }
+
+    override fun equals(other: Any?): Boolean = other is OnjSchemaString && other.nullable == nullable
 
     override fun getAsNullable(): OnjSchema {
         return OnjSchemaString(true)
@@ -171,6 +181,20 @@ class OnjSchemaObject internal constructor(
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (other !is OnjSchemaObject) return false
+        if (other.nullable != nullable || other.allowsAdditional != allowsAdditional) return false
+        keys.forEach { (key, schema) ->
+            val other = other.keys[key] ?: return false
+            if (other != schema) return false
+        }
+        optionalKeys.forEach { (key, schema) ->
+            val other = other.optionalKeys[key] ?: return false
+            if (other != schema) return false
+        }
+        return true
+    }
+
     override fun getAsNullable(): OnjSchema {
         return OnjSchemaObject(true, keys, optionalKeys, allowsAdditional)
     }
@@ -210,6 +234,12 @@ class TypeBasedOnjSchemaArray(
         }
     }
 
+    override fun equals(other: Any?): Boolean =
+            other is TypeBasedOnjSchemaArray &&
+            other.nullable == nullable &&
+            other.size == size &&
+            other.type == type
+
     override fun getAsNullable(): OnjSchema = TypeBasedOnjSchemaArray(type, size, true)
 }
 
@@ -235,6 +265,15 @@ class LiteralOnjSchemaArray(
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (other !is LiteralOnjSchemaArray || other.nullable != nullable) return false
+        if (schemas.size != other.schemas.size) return false
+        schemas.forEachIndexed { index, schema ->
+            if (schema != other.schemas[index]) return false
+        }
+        return true
+    }
+
     override fun getAsNullable(): OnjSchema = LiteralOnjSchemaArray(schemas, nullable)
 }
 
@@ -249,6 +288,8 @@ class OnjSchemaAny internal constructor() : OnjSchema(true) {
     override fun getAsNullable(): OnjSchema {
         return OnjSchemaAny()
     }
+
+    override fun equals(other: Any?): Boolean = other is OnjSchemaAny
 }
 
 class OnjSchemaNamedObjectGroup internal constructor(
@@ -282,6 +323,18 @@ class OnjSchemaNamedObjectGroup internal constructor(
         obj.match(onjValue, parentName)
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (other !is OnjSchemaNamedObjectGroup || other.nullable != nullable || other.name != name) return false
+        namedObjects.forEach { (name, objects) ->
+            val otherObjects = other.namedObjects[name] ?: return false
+            if (otherObjects.size != objects.size) return false
+            objects.forEachIndexed { index, obj ->
+                if (obj != otherObjects[index]) return false
+            }
+        }
+        return true
+    }
+
     override fun getAsNullable(): OnjSchema {
         return OnjSchemaNamedObjectGroup(name, true, namedObjects)
     }
@@ -310,6 +363,11 @@ class OnjSchemaCustomDataType internal constructor(
         }
     }
 
+    override fun equals(other: Any?): Boolean =
+            other is OnjSchemaCustomDataType &&
+            other.nullable == nullable &&
+            other.type == type
+
     override fun getAsNullable(): OnjSchema {
         return OnjSchemaCustomDataType(name, type, true)
     }
@@ -330,7 +388,10 @@ private fun getActualType(value: OnjValue): String {
     }
 }
 
-class OnjSchemaNamedObject(val name: String, val obj: OnjSchemaObject)
+class OnjSchemaNamedObject(val name: String, val obj: OnjSchemaObject) {
+
+    override fun equals(other: Any?): Boolean = other is OnjSchemaNamedObject && other.obj == obj
+}
 
 fun List<OnjSchema>.toSchemaArray(): OnjSchemaArray = LiteralOnjSchemaArray(this, false)
 

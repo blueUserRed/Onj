@@ -1,0 +1,2 @@
+import "src/test/res/namedObjGroupImportTest/group1.onjschema" as _;
+import "src/test/res/namedObjGroupImportTest/differentGroup.onjschema" as _;
