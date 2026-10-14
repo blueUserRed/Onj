@@ -1,3 +1,5 @@
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
@@ -58,6 +60,22 @@ abstract class Test {
 
     fun assertEquals(first: Any?, second: Any?) {
         if (first != second) throw TestException("assertion failed: $first != $second")
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    fun assertNotNull(notNull: Any?) {
+        contract {
+            returns() implies (notNull != null)
+        }
+        if (notNull == null) throw TestException("assertions failed: $notNull == null")
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    fun assertNull(mustBeNull: Any?) {
+        contract {
+            returns() implies (mustBeNull == null)
+        }
+        if (mustBeNull != null) throw TestException("assertions failed: $mustBeNull == null")
     }
 
     class TestException(message: String? = null) : RuntimeException(message)

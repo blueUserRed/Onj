@@ -27,6 +27,11 @@ object OnjConfig {
 
     fun getNamespace(name: String): Namespace? = namespaces[name]
 
+    fun deregisterNamespace(name: String): Boolean {
+        require(name != "global") { "Cant deregister global namespace" }
+        return namespaces.remove(name) != null
+    }
+
     fun registerNamespace(name: String, obj: Any) {
         val clazz = obj::class
         val annotation = clazz.findAnnotation<OnjNamespace>()

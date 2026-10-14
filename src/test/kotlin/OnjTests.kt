@@ -132,6 +132,14 @@ object OnjTests : Test() {
         fileWithSchema("namespace")
     }
 
+    @TestCase
+    fun testDeregisterNamespace() {
+        OnjConfig.registerNamespace("Test2", TestNamespace)
+        assertNotNull(OnjConfig.getNamespace("Test2"))
+        OnjConfig.deregisterNamespace("Test2")
+        assertNull(OnjConfig.getNamespace("Test2"))
+    }
+
     private fun onjFile(name: String): OnjValue = OnjParser.parseFile("src/test/res/files/$name.onj")
     private fun invalidOnjFile(name: String): OnjValue = OnjParser.parseFile("src/test/res/files/invalid/$name.onj")
     private fun onjSchemaFile(name: String): OnjSchema = OnjSchemaParser.parseFile("src/test/res/schemas/$name.onjschema")
